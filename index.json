@@ -5,11 +5,11 @@
     {
       "id": "org.plexo.js.animepahe",
       "name": "animepahe",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "Anime",
       "adult": false,
       "description": "Anime from animepahe: sub and dub, 360p to 1080p, full episode lists",
-      "site": "animepahe.si",
+      "site": "animepahe.pw",
       "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/animepahe.js"
     },
     {

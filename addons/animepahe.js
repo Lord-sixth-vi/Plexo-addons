@@ -1,7 +1,7 @@
 // @name animepahe
 // @id org.plexo.js.animepahe
-// @version 1.0.0
-// @domains animepahe.si, animepahe.ru, animepahe.com, animepahe.org, animepahe.pw, kwik.cx, kwik.si, kwik.pm
+// @version 1.1.0
+// @domains animepahe.pw, animepahe.si, animepahe.com, animepahe.org, animepahe.ru, kwik.cx, kwik.si, kwik.pm
 // @category Anime
 // @description Anime from animepahe: sub and dub, 360p to 1080p, full episode lists
 //
@@ -20,10 +20,14 @@
 // Streams come from kwik and need the header  Referer: https://kwik.cx/
 // Each stream entry carries it in "headers" for the player.
 //
+// animepahe and kwik sit behind Cloudflare's browser check. Plexo (from the version with
+// "Pass site security checks") gets through it with its built-in browser; this add-on only
+// needs plain requests.
+//
 // Written from how the site is known to work, not tested against the live site.
 // If it stops working after a site change, only this file needs fixing.
 
-var DOMAINS = ["https://animepahe.si", "https://animepahe.ru", "https://animepahe.com", "https://animepahe.org", "https://animepahe.pw"];
+var DOMAINS = ["https://animepahe.pw", "https://animepahe.si", "https://animepahe.com", "https://animepahe.org", "https://animepahe.ru"];
 var BASE = DOMAINS[0];
 var KWIK_REFERER = "https://kwik.cx/";
 var PER_PAGE = 30;
@@ -42,23 +46,32 @@ function siteHeaders() {
 }
 
 function isBlockPage(body) {
-  return /ddos-guard|cf-browser-verification|challenge-platform|Just a moment/i.test(body.slice(0, 3000));
+  return /ddos-guard|cf-browser-verification|challenge-platform|Just a moment|cf_chl_opt/i.test(String(body || "").slice(0, 4000));
 }
 
-// GET a path on animepahe, trying the mirror domains until one answers.
+var CHECK_MSG = "animepahe is behind a security check. In Plexo turn on Settings > Add-ons > Pass site security checks, then try again.";
+
+function fetchFrom(b, path) {
+  return http.getH(b + path, JSON.stringify({ "Cookie": COOKIE, "Referer": b + "/", "X-Requested-With": "XMLHttpRequest" }));
+}
+
+// GET a page on animepahe, trying the mirror domains until one answers properly.
+// accept(body) decides whether an answer is the real thing (not a check or a parked page).
 var __baseFound = false;
-function site(path) {
-  var tries = __baseFound ? [BASE] : DOMAINS;
+function siteTry(path, accept) {
+  var tries = __baseFound ? [BASE].concat(DOMAINS.filter(function (d) { return d !== BASE; })) : DOMAINS;
   var lastErr = null;
   for (var i = 0; i < tries.length; i++) {
     var b = tries[i];
     try {
-      var body = http.getH(b + path, JSON.stringify({ "Cookie": COOKIE, "Referer": b + "/", "X-Requested-With": "XMLHttpRequest" }));
-      if (isBlockPage(body)) { lastErr = new Error("animepahe is showing a browser check right now. Try again in a minute."); continue; }
+      var body = fetchFrom(b, path);
+      if (isBlockPage(body)) { lastErr = new Error(CHECK_MSG); continue; }
+      var ok = accept(body);
+      if (ok === undefined || ok === false) { lastErr = new Error("animepahe sent an unexpected answer from " + b.replace("https://", "")); continue; }
       BASE = b;
       __baseFound = true;
       if (body.length > 4000) __pages[b + path] = body;
-      return body;
+      return { body: body, value: ok };
     } catch (e) {
       lastErr = e;
     }
@@ -66,13 +79,20 @@ function site(path) {
   throw lastErr || new Error("animepahe could not be reached");
 }
 
+function site(path) {
+  return siteTry(path, function (body) { return String(body || "").length > 100 ? true : false; }).body;
+}
+
+// JSON may arrive wrapped (when read through the browser), so take the outermost {...}.
+function parseJson(body) {
+  var t = String(body || "").trim();
+  var a = t.indexOf("{"), z = t.lastIndexOf("}");
+  if (a < 0 || z <= a) return undefined;
+  try { return JSON.parse(t.slice(a, z + 1)); } catch (e) { return undefined; }
+}
+
 function api(query) {
-  var body = site("/api?" + query);
-  try {
-    return JSON.parse(body);
-  } catch (e) {
-    throw new Error("animepahe sent an unexpected answer (the site may have changed)");
-  }
+  return siteTry("/api?" + query, parseJson).value;
 }
 
 function enc(q) { return encodeURIComponent(q); }
