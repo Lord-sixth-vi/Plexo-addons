@@ -10,7 +10,7 @@
       "adult": true,
       "description": "Search and stream from eporner.com (adults only, 18+)",
       "site": "eporner.com",
-      "url": "https://raw.githubusercontent.com/lord-fourth775/plexo-addons/main/addons/eporner.js"
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/eporner.js"
     },
     {
       "id": "org.plexo.js.pornhub",
@@ -20,7 +20,7 @@
       "adult": true,
       "description": "Search and stream from pornhub.com (adults only, 18+)",
       "site": "pornhub.com",
-      "url": "https://raw.githubusercontent.com/lord-fourth775/plexo-addons/main/addons/pornhub.js"
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/pornhub.js"
     },
     {
       "id": "org.plexo.js.redtube",
@@ -30,7 +30,7 @@
       "adult": true,
       "description": "Search and stream from redtube.com (adults only, 18+)",
       "site": "redtube.com",
-      "url": "https://raw.githubusercontent.com/lord-fourth775/plexo-addons/main/addons/redtube.js"
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/redtube.js"
     },
     {
       "id": "org.plexo.js.spankbang",
@@ -40,7 +40,7 @@
       "adult": true,
       "description": "Search and stream from spankbang.com (adults only, 18+)",
       "site": "spankbang.com",
-      "url": "https://raw.githubusercontent.com/lord-fourth775/plexo-addons/main/addons/spankbang.js"
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/spankbang.js"
     },
     {
       "id": "org.plexo.js.tube8",
@@ -50,7 +50,7 @@
       "adult": true,
       "description": "Search and stream from tube8.com (adults only, 18+)",
       "site": "tube8.com",
-      "url": "https://raw.githubusercontent.com/lord-fourth775/plexo-addons/main/addons/tube8.js"
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/tube8.js"
     },
     {
       "id": "org.plexo.js.xhamster",
@@ -60,7 +60,7 @@
       "adult": true,
       "description": "Search and stream from xhamster.com (adults only, 18+)",
       "site": "xhamster.com",
-      "url": "https://raw.githubusercontent.com/lord-fourth775/plexo-addons/main/addons/xhamster.js"
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/xhamster.js"
     },
     {
       "id": "org.plexo.js.xnxx",
@@ -70,7 +70,7 @@
       "adult": true,
       "description": "Search and stream from xnxx.com (adults only, 18+)",
       "site": "xnxx.com",
-      "url": "https://raw.githubusercontent.com/lord-fourth775/plexo-addons/main/addons/xnxx.js"
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/xnxx.js"
     },
     {
       "id": "org.plexo.js.xvideos",
@@ -80,7 +80,7 @@
       "adult": true,
       "description": "Search and stream from xvideos.com (adults only, 18+)",
       "site": "xvideos.com",
-      "url": "https://raw.githubusercontent.com/lord-fourth775/plexo-addons/main/addons/xvideos.js"
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/xvideos.js"
     },
     {
       "id": "org.plexo.js.youporn",
@@ -90,7 +90,7 @@
       "adult": true,
       "description": "Search and stream from youporn.com (adults only, 18+)",
       "site": "youporn.com",
-      "url": "https://raw.githubusercontent.com/lord-fourth775/plexo-addons/main/addons/youporn.js"
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/youporn.js"
     }
   ]
 }
