@@ -3,6 +3,16 @@
   "name": "Plexo add-ons",
   "addons": [
     {
+      "id": "org.plexo.js.animepahe",
+      "name": "animepahe",
+      "version": "1.0.0",
+      "category": "Anime",
+      "adult": false,
+      "description": "Anime from animepahe: sub and dub, 360p to 1080p, full episode lists",
+      "site": "animepahe.si",
+      "url": "https://raw.githubusercontent.com/lord-fourth775/Plexo-addons/main/addons/animepahe.js"
+    },
+    {
       "id": "org.plexo.js.eporner",
       "name": "Eporner",
       "version": "1.0.0",
