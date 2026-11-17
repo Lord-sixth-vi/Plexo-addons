@@ -9,9 +9,11 @@ Each add-on is one JavaScript file in `addons/`. The comment lines at the top de
 // @id       org.plexo.js.site
 // @version  1.0.0
 // @domains  site.com, cdn.site.com
-// @category Adult
+// @category Category
 // @description One line about it
 ```
 
-To add a new one: put the `.js` file in `addons/` and add an entry to `index.json`.
+To add a new one: put the `.js` file in `addons/` and add an entry to `index.json`, with its link in this form:
+`https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/<file>.js`
+
 To update one: change the file and raise its `@version` (and the version in `index.json`), and Plexo offers the update.
