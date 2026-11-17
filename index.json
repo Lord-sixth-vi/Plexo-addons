@@ -1,5 +1,26 @@
 {
   "format": 1,
   "name": "Plexo add-ons",
-  "addons": []
+  "addons": [
+    {
+      "id": "grayjay.1c291164-294c-4c2d-800d-7bc6d31d0019",
+      "name": "PeerTube (Grayjay)",
+      "version": "27",
+      "category": "Grayjay",
+      "adult": false,
+      "description": "Official Grayjay PeerTube plugin by FUTO. Needs Settings → Add-ons → Grayjay plugins turned on.",
+      "site": "joinpeertube.org",
+      "url": "https://plugins.grayjay.app/PeerTube/PeerTubeConfig.json"
+    },
+    {
+      "id": "grayjay.1c05bfc3-08b9-42d0-93d3-6d52e0fd34d8",
+      "name": "Odysee (Grayjay)",
+      "version": "56",
+      "category": "Grayjay",
+      "adult": false,
+      "description": "Official Grayjay Odysee plugin by FUTO. Needs Settings → Add-ons → Grayjay plugins turned on.",
+      "site": "odysee.com",
+      "url": "https://plugins.grayjay.app/Odysee/OdyseeConfig.json"
+    }
+  ]
 }
