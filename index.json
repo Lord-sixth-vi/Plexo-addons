@@ -3,24 +3,44 @@
   "name": "Plexo add-ons",
   "addons": [
     {
-      "id": "grayjay.1c291164-294c-4c2d-800d-7bc6d31d0019",
-      "name": "PeerTube (Grayjay)",
-      "version": "27",
-      "category": "Grayjay",
+      "id": "stremio.cinemeta",
+      "name": "Cinemeta (Stremio)",
+      "version": "3",
+      "category": "Stremio",
       "adult": false,
-      "description": "Official Grayjay PeerTube plugin by FUTO. Needs Settings → Add-ons → Grayjay plugins turned on.",
-      "site": "joinpeertube.org",
-      "url": "https://plugins.grayjay.app/PeerTube/PeerTubeConfig.json"
+      "description": "Popular movies and shows, search and episode lists. Install this first: it fills Plexo with movies and shows that your link add-ons and Nuvio providers can play.",
+      "site": "strem.io",
+      "url": "https://v3-cinemeta.strem.io/manifest.json"
     },
     {
-      "id": "grayjay.1c05bfc3-08b9-42d0-93d3-6d52e0fd34d8",
-      "name": "Odysee (Grayjay)",
-      "version": "56",
-      "category": "Grayjay",
+      "id": "stremio.opensubtitles",
+      "name": "OpenSubtitles (Stremio)",
+      "version": "3",
+      "category": "Stremio",
       "adult": false,
-      "description": "Official Grayjay Odysee plugin by FUTO. Needs Settings → Add-ons → Grayjay plugins turned on.",
-      "site": "odysee.com",
-      "url": "https://plugins.grayjay.app/Odysee/OdyseeConfig.json"
+      "description": "Subtitles in many languages for movies and episodes.",
+      "site": "opensubtitles.org",
+      "url": "https://opensubtitles-v3.strem.io/manifest.json"
+    },
+    {
+      "id": "nuvio.gowaru",
+      "name": "Gowaru's providers (Nuvio)",
+      "version": "1",
+      "category": "Nuvio",
+      "adult": false,
+      "description": "French providers for movies, shows and anime (VF / VOSTFR).",
+      "site": "github.com",
+      "url": "https://raw.githubusercontent.com/Gowaru/gowaru-nuvio-providers/main/manifest.json"
+    },
+    {
+      "id": "nuvio.mkv9903",
+      "name": "FlixIndia (Nuvio)",
+      "version": "1",
+      "category": "Nuvio",
+      "adult": false,
+      "description": "Nuvio provider for movies and shows.",
+      "site": "github.com",
+      "url": "https://raw.githubusercontent.com/mkv9903/NuvioProviders/main/manifest.json"
     }
   ]
 }

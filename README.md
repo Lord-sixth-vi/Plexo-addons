@@ -18,12 +18,17 @@ To add a new one: put the `.js` file in `addons/` and add an entry to `index.jso
 
 To update one: change the file and raise its `@version` (and the version in `index.json`), and Plexo offers the update.
 
-## Grayjay plugins
+## Stremio add-ons
 
-Plexo can also run Grayjay plugins (turn on Settings → Add-ons → Grayjay plugins).
-Install one by pasting its config JSON link in the Add-ons tab, for example:
+Plexo runs Stremio add-ons (Settings → Add-ons → Stremio add-ons). Paste an add-on's
+`manifest.json` link (or a `stremio://` install link) in the Add-ons tab. Catalog add-ons
+fill Home and search with movies and shows; stream add-ons give the links to play; subtitle
+add-ons add subtitles. Start with Cinemeta: `https://v3-cinemeta.strem.io/manifest.json`
 
-- PeerTube: `https://plugins.grayjay.app/PeerTube/PeerTubeConfig.json`
-- Odysee: `https://plugins.grayjay.app/Odysee/OdyseeConfig.json`
+## Nuvio providers
 
-Grayjay entries in `index.json` point straight at the plugin's config link.
+Plexo also runs Nuvio providers (Settings → Add-ons → Nuvio providers). Paste a Nuvio
+repository `manifest.json` link (or one provider `.js` link). Providers add extra links
+when a movie or episode from your Stremio add-ons plays.
+
+Stremio and Nuvio entries in `index.json` point straight at the add-on's own link.
