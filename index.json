@@ -1,46 +1,5 @@
 {
   "format": 1,
   "name": "Plexo add-ons",
-  "addons": [
-    {
-      "id": "stremio.cinemeta",
-      "name": "Cinemeta (Stremio)",
-      "version": "3",
-      "category": "Stremio",
-      "adult": false,
-      "description": "Popular movies and shows, search and episode lists. Install this first: it fills Plexo with movies and shows that your link add-ons and Nuvio providers can play.",
-      "site": "strem.io",
-      "url": "https://v3-cinemeta.strem.io/manifest.json"
-    },
-    {
-      "id": "stremio.opensubtitles",
-      "name": "OpenSubtitles (Stremio)",
-      "version": "3",
-      "category": "Stremio",
-      "adult": false,
-      "description": "Subtitles in many languages for movies and episodes.",
-      "site": "opensubtitles.org",
-      "url": "https://opensubtitles-v3.strem.io/manifest.json"
-    },
-    {
-      "id": "nuvio.gowaru",
-      "name": "Gowaru's providers (Nuvio)",
-      "version": "1",
-      "category": "Nuvio",
-      "adult": false,
-      "description": "French providers for movies, shows and anime (VF / VOSTFR).",
-      "site": "github.com",
-      "url": "https://raw.githubusercontent.com/Gowaru/gowaru-nuvio-providers/main/manifest.json"
-    },
-    {
-      "id": "nuvio.mkv9903",
-      "name": "FlixIndia (Nuvio)",
-      "version": "1",
-      "category": "Nuvio",
-      "adult": false,
-      "description": "Nuvio provider for movies and shows.",
-      "site": "github.com",
-      "url": "https://raw.githubusercontent.com/mkv9903/NuvioProviders/main/manifest.json"
-    }
-  ]
+  "addons": []
 }
