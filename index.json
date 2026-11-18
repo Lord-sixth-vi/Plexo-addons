@@ -121,6 +121,15 @@
   "description": "Free adult video streaming, search, and channel browsing",
   "site": "xhamster.com",
   "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xhamster.js"
+    },
+    {
+      "id": "org.plexo.js.7movies",
+      "name": "7Movies",
+      "version": "1.0.0",
+      "category": "Movies",
+      "adult": false,
+      "site": "7movies.ac",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/7movies.js"
     }
   ]
 }
