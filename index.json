@@ -1,5 +1,96 @@
 {
   "format": 1,
   "name": "Plexo add-ons",
-  "addons": []
+  "addons": [
+    {
+      "id": "org.plexo.js.eporner",
+      "name": "Eporner",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from eporner.com (adults only, 18+)",
+      "site": "eporner.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/eporner.js"
+    },
+    {
+      "id": "org.plexo.js.pornhub",
+      "name": "Pornhub",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from pornhub.com (adults only, 18+)",
+      "site": "pornhub.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/pornhub.js"
+    },
+    {
+      "id": "org.plexo.js.redtube",
+      "name": "RedTube",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from redtube.com (adults only, 18+)",
+      "site": "redtube.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/redtube.js"
+    },
+    {
+      "id": "org.plexo.js.spankbang",
+      "name": "SpankBang",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from spankbang.com (adults only, 18+)",
+      "site": "spankbang.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/spankbang.js"
+    },
+    {
+      "id": "org.plexo.js.tube8",
+      "name": "Tube8",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from tube8.com (adults only, 18+)",
+      "site": "tube8.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/tube8.js"
+    },
+    {
+      "id": "org.plexo.js.xhamster",
+      "name": "xHamster",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from xhamster.com (adults only, 18+)",
+      "site": "xhamster.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xhamster.js"
+    },
+    {
+      "id": "org.plexo.js.xnxx",
+      "name": "XNXX",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from xnxx.com (adults only, 18+)",
+      "site": "xnxx.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xnxx.js"
+    },
+    {
+      "id": "org.plexo.js.xvideos",
+      "name": "XVideos",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from xvideos.com (adults only, 18+)",
+      "site": "xvideos.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xvideos.js"
+    },
+    {
+      "id": "org.plexo.js.youporn",
+      "name": "YouPorn",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from youporn.com (adults only, 18+)",
+      "site": "youporn.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/youporn.js"
+    }
+  ]
 }
