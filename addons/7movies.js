@@ -340,4 +340,4 @@ function getInfo(url) {
     out.actors.push({ name: actor, url: base + cm[1] });
   }
   return out;
-      }
+}
