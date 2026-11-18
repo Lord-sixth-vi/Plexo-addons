@@ -131,6 +131,16 @@
   "description": "Browse authorised WebseriesDesk videos, search titles and open available streams",
   "site": "webseriesdesk.store",
   "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/webseriesdesk.js"
-    }
+    },
+    {
+  "id": "org.plexo.js.desihub",
+  "name": "Desihub",
+  "version": "1.0.0",
+  "category": "18+",
+  "adult": true,
+  "description": "Show home feed, search, and playback for Desihub videos",
+  "site": "desihub.sh",
+  "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/desihub.js"
+    } 
   ]
 }
