@@ -3,6 +3,16 @@
   "name": "Plexo add-ons",
   "addons": [
     {
+      "id": "org.plexo.js.beeg",
+      "name": "Beeg",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Stream from beeg.com: newest videos, channels, models and tags, HD qualities (adults only, 18+)",
+      "site": "beeg.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/beeg.js"
+    },
+    {
       "id": "org.plexo.js.eporner",
       "name": "Eporner",
       "version": "1.0.0",
@@ -11,6 +21,16 @@
       "description": "Search and stream from eporner.com (adults only, 18+)",
       "site": "eporner.com",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/eporner.js"
+    },
+    {
+      "id": "org.plexo.js.okxxx",
+      "name": "OK.XXX",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "Search and stream from ok.xxx: models, channels, up to 4K where offered (adults only, 18+)",
+      "site": "ok.xxx",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/okxxx.js"
     },
     {
       "id": "org.plexo.js.pornhub",
