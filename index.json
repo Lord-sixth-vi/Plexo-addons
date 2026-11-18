@@ -111,6 +111,16 @@
       "description": "Search and stream from youporn.com (adults only, 18+)",
       "site": "youporn.com",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/youporn.js"
+    },
+    {
+  "id": "org.plexo.js.xhamster",
+  "name": "xHamster",
+  "version": "1.0.0",
+  "category": "18+",
+  "adult": true,
+  "description": "Free adult video streaming, search, and channel browsing",
+  "site": "xhamster.com",
+  "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xhamster.js"
     }
   ]
 }
