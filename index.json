@@ -121,6 +121,16 @@
       "description": "Free movies and TV shows streaming from multiple servers up to 4K (2160p)",
       "site": "7movies.ac",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/7movies.js"
+    },
+    {
+  "id": "org.plexo.js.webseriesdesk",
+  "name": "WebseriesDesk",
+  "version": "1.0.0",
+  "category": "18+",
+  "adult": true,
+  "description": "Browse authorised WebseriesDesk videos, search titles and open available streams",
+  "site": "webseriesdesk.store",
+  "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/webseriesdesk.js"
     }
   ]
 }
