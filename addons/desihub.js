@@ -1,6 +1,6 @@
 // @name        Desihub
 // @id          org.plexo.js.desihub
-// @version     1.0.0
+// @version     1.0.1
 // @author      Plexo add-ons
 // @domains     desihub.sh, www.desihub.sh, cdn.desihub.sh
 // @category    18+
@@ -98,7 +98,7 @@ function getStream(url) {
   var html = res.html;
   
   var streams = [];
-  var mediaDefs = mediaDefinitionStreams(html, base);
+  var mediaDefs = mediaDefinitionStreams(html, base, { Referer: base + "/" });
   for (var i = 0; i < mediaDefs.length; i++) {
     streams.push(mediaDefs[i]);
   }
@@ -108,7 +108,11 @@ function getStream(url) {
     streams.push({ label: heightOf(direct[j]) ? heightOf(direct[j]) + "p" : "MP4", url: direct[j] });
   }
   
-  return finalizeStreams(streams);
+  try {
+    return finalizeStreams(streams);
+  } catch (err) {
+    return anyStreams(html);
+  }
 }
 
 function getInfo(url) {
