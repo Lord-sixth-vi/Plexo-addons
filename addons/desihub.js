@@ -1,6 +1,6 @@
 // @name        Desihub
 // @id          org.plexo.js.desihub
-// @version     1.0.2
+// @version     1.0.3
 // @author      Plexo add-ons
 // @domains     desihub.sh, www.desihub.sh, cdn.desihub.sh
 // @category    18+
@@ -115,7 +115,6 @@ function getStream(url) {
     finalList = anyStreams(html);
   }
   
-  // Ensure required Referer headers are passed along with every stream URL
   for (var k = 0; k < finalList.length; k++) {
     finalList[k].headers = { Referer: base + "/" };
   }
