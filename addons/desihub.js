@@ -1,6 +1,6 @@
 // @name        Desihub
 // @id          org.plexo.js.desihub
-// @version     1.0.3
+// @version     1.0.4
 // @author      Plexo add-ons
 // @domains     desihub.sh, www.desihub.sh, cdn.desihub.sh
 // @category    18+
