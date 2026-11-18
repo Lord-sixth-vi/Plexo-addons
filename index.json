@@ -78,7 +78,7 @@
       "version": "1.0.0",
       "category": "18+",
       "adult": true,
-      "description": "Search and stream from xhamster.com (adults only, 18+)",
+      "description": "Free adult video streaming, search, and channel browsing",
       "site": "xhamster.com",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xhamster.js"
     },
@@ -113,21 +113,12 @@
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/youporn.js"
     },
     {
-  "id": "org.plexo.js.xhamster",
-  "name": "xHamster",
-  "version": "1.0.0",
-  "category": "18+",
-  "adult": true,
-  "description": "Free adult video streaming, search, and channel browsing",
-  "site": "xhamster.com",
-  "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xhamster.js"
-    },
-    {
       "id": "org.plexo.js.7movies",
       "name": "7Movies",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "category": "Movies",
       "adult": false,
+      "description": "Free movies and TV shows streaming from multiple servers up to 4K (2160p)",
       "site": "7movies.ac",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/7movies.js"
     }
