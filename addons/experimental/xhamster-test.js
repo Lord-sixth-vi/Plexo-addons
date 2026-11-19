@@ -1,6 +1,6 @@
 // @name        xHamster OTT Test (Experimental)
 // @id          org.plexo.js.xhamster_test
-// @version     0.1.1
+// @version     0.1.2
 // @author      Plexo add-ons
 // @domains     xhamster.com, www.xhamster.com, m.xhamster.com, xhamster.desi, www.xhamster.desi
 // @category    18+
@@ -27,8 +27,8 @@ function xhText(s){return decodeHtml(String(s||"").replace(/<[^>]+>/g," ").repla
 function xhCards(html,base) {
   var out=[],seen={},re=/<a\b[^>]*href=["']([^"']*\/videos\/[^"']+)["'][^>]*>/gi,m;
   while((m=re.exec(html))&&out.length<35){
-    var url=absUrl(base,m[1]);if(seen[url])continue;
-    var chunk=html.slice(Math.max(0,m.index-350),Math.min(html.length,m.index+2000));
+    var url=absUrl(base,m[1]);if(seen[url])continue;\n    if(!/^https?:\\/\\/(?:www\\.|m\\.)?xhamster\\.(?:com|desi)\\/videos\\/[^?#]+/i.test(url))continue;
+    var chunk=html.slice(m.index,Math.min(html.length,m.index+1600));
     var img=(chunk.match(/<img\b[^>]*>/i)||[""])[0];
     var title=attr(m[0],"title")||attr(img,"alt")||attr(img,"title");
     if(!title){var t=chunk.match(/(?:title|video-title)[^>]*>([^<]{4,160})</i);title=t?xhText(t[1]):"";}
@@ -49,13 +49,30 @@ function getStream(url){
   function add(u,label){
     u=decodeHtml(String(u||"").replace(/\\u0026/g,"&").replace(/\\\//g,"/"));
     if(!/^https?:\/\//i.test(u)||!/[.](?:mp4|m3u8|mpd)(?:[?#]|$)/i.test(u)||seen[u])return;
-    seen[u]=true;streams.push({label:label||((heightOf(u)||"Auto")+"p"),url:u,headers:{Referer:p.base+"/"}});
+    // Never use preview/trailer clips as the main playback stream.
+    if(/(?:preview|trailer|teaser|thumb|sprite|sample|_6s|6sec)/i.test(u))return;
+    seen[u]=true;
+    streams.push({label:label||"Auto",url:u,headers:{Referer:p.base+"/"}});
   }
-  var media=findMediaUrls(html);
-  for(var i=0;i<media.length;i++)add(media[i],heightOf(media[i])?heightOf(media[i])+"p":"Auto");
-  var sources=html.match(/https?:[^"'\s<>]+\.(?:mp4|m3u8|mpd)(?:\?[^"'\s<>]*)?/g)||[];
-  for(var j=0;j<sources.length;j++)add(sources[j],"Stream");
-  if(!streams.length)throw new Error("No public playable streams detected; site player may require unsupported extraction");
+  // Prefer player configuration media rather than arbitrary URLs embedded in page markup.
+  var config=jsonAfter(html,/\b(?:videoModel|videoSources|playerConfig|sources)\s*[:=]\s*/);
+  function walk(value,depth,label){
+    if(depth>5||value==null)return;
+    if(typeof value==="string"){add(value,label);return;}
+    if(Array.isArray(value)){for(var i=0;i<value.length;i++)walk(value[i],depth+1,label);return;}
+    if(typeof value==="object"){
+      if(value.url||value.src||value.file)add(value.url||value.src||value.file,value.label||value.quality||label);
+      for(var key in value)if(Object.prototype.hasOwnProperty.call(value,key)&&key!=="url"&&key!=="src"&&key!=="file")walk(value[key],depth+1,/^(?:2160|1440|1080|720|480|360)p?$/i.test(key)?key:value.label||label);
+    }
+  }
+  if(config)walk(config,0,"Auto");
+  // A standalone HLS master is acceptable; do not treat arbitrary page video URLs as full videos.
+  if(!streams.length){
+    var masters=html.match(/https?:[^"'\s<>]+(?:master|playlist)[^"'\s<>]*\.m3u8(?:\?[^"'\s<>]*)?/gi)||[];
+    for(var j=0;j<masters.length;j++)add(masters[j],"Auto HLS");
+  }
+  if(!streams.length)throw new Error("Full-length stream not verified; refusing to play a preview clip");
+  streams.sort(function(a,b){return (/m3u8/i.test(a.url)?1:0)-(/m3u8/i.test(b.url)?1:0);});
   return streams;
 }
 function getInfo(url){
@@ -68,7 +85,7 @@ function getFeatured(page){return home(page);}
 function getHomeSections(page){
   return [{id:"trending",title:"Trending",items:home(page)},{id:"new",title:"Recently Added",items:xhList("/newest/"+(page>1?"?page="+page:""))}];
 }
-function getRecommendations(url,page){return home(page);}
+function getRecommendations(url,page){return []; /* No verified related-video extraction yet */}
 function getChannel(url){
   var p=xhFetch(xhPath(url)),t=(p.html.match(/<title[^>]*>([^<]+)</i)||[])[1]||"Channel";
   return {name:xhText(t),url:url,description:"Public xHamster channel page",avatar:"",banner:""};
