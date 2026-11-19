@@ -1,22 +1,31 @@
 // @name        Pornhub.org OTT Test (Experimental)
 // @id          org.plexo.js.pornhub_org_test
-// @version     0.1.0
+// @version     0.1.1
 // @author      Plexo add-ons
-// @domains     pornhub.org, www.pornhub.org
+// @domains     pornhub.org, www.pornhub.org, pornhub.com, www.pornhub.com
 // @category    18+
 // @description Experimental public-page listing and playback; not verified
 
 var PH_BASE="https://www.pornhub.org";
+var PH_HOSTS=["https://www.pornhub.org","https://www.pornhub.com"];
 function phPath(url){
-  var m=String(url||"").match(/^https?:\/\/(?:www\.)?pornhub\.org(\/[^#]*)/i);
+  var m=String(url||"").match(/^https?:\/\/(?:www\.)?pornhub\.(?:org|com)(\/[^#]*)/i);
   if(!m)throw new Error("Unsupported pornhub.org URL");
   return m[1];
 }
 function phFetch(path){
-  var html=getPage(PH_BASE+path);
-  if(!html||html.length<500)throw new Error("pornhub.org returned no usable page");
-  if(/captcha|access denied|verify you are human/i.test(html.slice(0,2000)))throw new Error("Site requires browser verification");
-  return html;
+  var errors=[];
+  for(var i=0;i<PH_HOSTS.length;i++){
+    var host=PH_HOSTS[i];
+    try{
+      var html=getPage(host+path);
+      if(!html||html.length<500)throw new Error("Empty response");
+      if(/captcha|access denied|verify you are human/i.test(html.slice(0,2000)))throw new Error("Browser verification required");
+      PH_BASE=host;
+      return html;
+    }catch(e){errors.push(host+": "+String(e.message||e));}
+  }
+  throw new Error("Both Pornhub hosts unavailable: "+errors.join(" | ").slice(0,300));
 }
 function phClean(value){return decodeHtml(String(value||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim());}
 function phCards(html){
