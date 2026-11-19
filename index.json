@@ -1,3 +1,15 @@
 {
-  "addons": []
+  "addons": [
+    {
+      "id": "org.plexo.js.internetarchive",
+      "name": "Internet Archive Movies",
+      "version": "1.2.1",
+      "category": "Movies",
+      "adult": false,
+      "description": "Public-domain and openly licensed movies; direct MP4 playback",
+      "site": "archive.org",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/ott/internetarchive.js",
+      "logo": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg"
+    }
+  ]
 }
