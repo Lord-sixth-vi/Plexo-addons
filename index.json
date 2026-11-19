@@ -1,10 +1,10 @@
 {
   "id": "org.plexo.js.xhamster",
   "name": "xHamster",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "category": "18+",
   "adult": true,
   "description": "Browse, search, and stream videos from xHamster with mirror fallback",
   "site": "xhamster.com",
-  "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xhamster.js"
+  "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addon/xhamster.js"
 }
