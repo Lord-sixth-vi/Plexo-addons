@@ -1,6 +1,6 @@
 // @name        Internet Archive Movies
 // @id          org.plexo.js.internetarchive
-// @version     1.1.2
+// @version     1.1.3
 // @login       https://archive.org/account/login
 // @icon        https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg
 // @author      Plexo add-ons
@@ -113,9 +113,9 @@ function getStream(url) {
   for (var i = 0; i < files.length; i++) {
     var f = files[i], name = f && String(f.name || "");
     if (!name || f.private === "true" || f.private === true || f.source === "metadata") continue;
-    if (!/\\.(mp4|m4v|webm|m3u8|mpd)$/i.test(name)) continue;
+    if (!/[.](mp4|m4v|webm|m3u8|mpd)$/i.test(name)) continue;
     if (/sample|preview|thumb/i.test(name)) continue;
-    var ext = (name.match(/\\.([^.]+)$/) || [,"mp4"])[1].toLowerCase();
+    var ext = (name.match(/[.]([^.]+)$/) || ["","mp4"])[1].toLowerCase();
     var height = parseInt(f.height, 10) || heightOf(name) || 0;
     var width = parseInt(f.width, 10) || 0;
     var q = height || (width >= 3840 ? 2160 : width >= 2560 ? 1440 : width >= 1920 ? 1080 : width >= 1280 ? 720 : width >= 854 ? 480 : 0);
