@@ -8,7 +8,7 @@
       "adult": false,
       "description": "Free public-domain and openly licensed films",
       "site": "archive.org",
-      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/internetarchive.js",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/ott/internetarchive.js",
       "logo": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg",
       "icon": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg"
     }
