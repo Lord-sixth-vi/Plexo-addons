@@ -1,0 +1,84 @@
+name: Weekly full-history backup to Google Drive
+on:
+  schedule:
+    - cron: '17 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: google-drive-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DRIVE_FOLDER_ID: 1UKtPkxtTQRaeNLPoxOGAAfHlgiMZ7SP-
+      GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+      GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+      GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify required Drive secrets
+        shell: bash
+        run: |
+          for key in GDRIVE_CLIENT_ID GDRIVE_CLIENT_SECRET GDRIVE_REFRESH_TOKEN; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing repository Actions secret: $key"
+              exit 1
+            fi
+          done
+
+      - name: Create full Git bundle and ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/backup"
+          cd "$RUNNER_TEMP/backup"
+          git -c credential.helper= -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" clone --mirror "https://github.com/$GITHUB_REPOSITORY.git" repository.git
+          git -C repository.git bundle create repository.bundle --all
+          git -C repository.git bundle verify repository.bundle
+          git -C repository.git for-each-ref --format='%(refname) %(objectname)' > refs.txt
+          printf 'repository=%s\ncreated_utc=%s\ncommit=%s\n' "$GITHUB_REPOSITORY" "$(date -u +%FT%TZ)" "$GITHUB_SHA" > manifest.txt
+          sha256sum repository.bundle > SHA256SUMS
+          zip -q "${GITHUB_REPOSITORY##*/}-$(date -u +%Y%m%dT%H%M%SZ).zip" repository.bundle refs.txt manifest.txt SHA256SUMS
+          echo "BACKUP_FILE=$(find "$PWD" -maxdepth 1 -name '*.zip' -print -quit)" >> "$GITHUB_ENV"
+
+      - name: Install Google Drive client
+        run: python -m pip install --quiet google-api-python-client google-auth
+
+      - name: Upload ZIP to private Google Drive folder
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from google.oauth2.credentials import Credentials
+          from google.auth.transport.requests import Request
+          from googleapiclient.discovery import build
+          from googleapiclient.http import MediaFileUpload
+          path = os.environ["BACKUP_FILE"]
+          creds = Credentials(
+              token=None,
+              refresh_token=os.environ["GDRIVE_REFRESH_TOKEN"],
+              token_uri="https://oauth2.googleapis.com/token",
+              client_id=os.environ["GDRIVE_CLIENT_ID"],
+              client_secret=os.environ["GDRIVE_CLIENT_SECRET"],
+              scopes=["https://www.googleapis.com/auth/drive.file"],
+          )
+          creds.refresh(Request())
+          service = build("drive", "v3", credentials=creds, cache_discovery=False)
+          media = MediaFileUpload(path, mimetype="application/zip", resumable=True, chunksize=8 * 1024 * 1024)
+          request = service.files().create(
+              body={"name": os.path.basename(path), "parents": [os.environ["DRIVE_FOLDER_ID"]]},
+              media_body=media,
+              fields="id,name,size,webViewLink",
+              supportsAllDrives=True,
+          )
+          result = None
+          while result is None:
+              _, result = request.next_chunk()
+          print("Uploaded:", result["name"], "file ID:", result["id"])
+          PY
