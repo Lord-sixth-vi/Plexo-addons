@@ -1,6 +1,6 @@
 // @name        Internet Archive Movies
 // @id          org.plexo.js.internetarchive
-// @version     1.1.0
+// @version     1.1.1
 // @login       https://archive.org/account/login
 // @icon        https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg
 // @author      Plexo add-ons
@@ -94,7 +94,7 @@ function browse(url, page) {
 function isAllowedLicense(meta) {
   var md = (meta && meta.metadata) || {};
   var license = (firstValue(md.licenseurl) + " " + firstValue(md.license) + " " + firstValue(md.rights)).toLowerCase();
-  return /creativecommons\\.org\\/(?:licenses\\/|publicdomain\\/)/i.test(license) ||
+  return /creativecommons[.]org\/(?:licenses\/|publicdomain\/)/i.test(license) ||
     /public domain|no known copyright restrictions|copyright free|creative commons/i.test(license) ||
     /opensource_movies|prelinger|feature_films/i.test(firstValue(md.collection));
 }
@@ -102,7 +102,7 @@ function encodeFilePath(name) {
   return String(name).split("/").map(function(part) { return encodeURIComponent(part); }).join("/");
 }
 function getStream(url) {
-  var m = String(url || "").match(/archive\\.org\\/details\\/([^/?#]+)/i);
+  var m = String(url || "").match(/archive[.]org\/details\/([^/?#]+)/i);
   if (!m) throw new Error("Invalid Internet Archive video link");
   var id = decodeURIComponent(m[1]);
   var meta = iaJson(IA + "/metadata/" + encodeURIComponent(id));
