@@ -1,6 +1,6 @@
 // @name        xHamster OTT Test (Experimental)
 // @id          org.plexo.js.xhamster_test
-// @version     0.1.2
+// @version     0.1.3
 // @author      Plexo add-ons
 // @domains     xhamster.com, www.xhamster.com, m.xhamster.com, xhamster.desi, www.xhamster.desi
 // @category    18+
@@ -49,30 +49,22 @@ function getStream(url){
   function add(u,label){
     u=decodeHtml(String(u||"").replace(/\\u0026/g,"&").replace(/\\\//g,"/"));
     if(!/^https?:\/\//i.test(u)||!/[.](?:mp4|m3u8|mpd)(?:[?#]|$)/i.test(u)||seen[u])return;
-    // Never use preview/trailer clips as the main playback stream.
     if(/(?:preview|trailer|teaser|thumb|sprite|sample|_6s|6sec)/i.test(u))return;
-    seen[u]=true;
-    streams.push({label:label||"Auto",url:u,headers:{Referer:p.base+"/"}});
+    seen[u]=true;streams.push({label:label||"Auto",url:u,headers:{Referer:p.base+"/"}});
   }
-  // Prefer player configuration media rather than arbitrary URLs embedded in page markup.
-  var config=jsonAfter(html,/\b(?:videoModel|videoSources|playerConfig|sources)\s*[:=]\s*/);
-  function walk(value,depth,label){
-    if(depth>5||value==null)return;
-    if(typeof value==="string"){add(value,label);return;}
-    if(Array.isArray(value)){for(var i=0;i<value.length;i++)walk(value[i],depth+1,label);return;}
-    if(typeof value==="object"){
-      if(value.url||value.src||value.file)add(value.url||value.src||value.file,value.label||value.quality||label);
-      for(var key in value)if(Object.prototype.hasOwnProperty.call(value,key)&&key!=="url"&&key!=="src"&&key!=="file")walk(value[key],depth+1,/^(?:2160|1440|1080|720|480|360)p?$/i.test(key)?key:value.label||label);
+  // Generic page URL scraping repeatedly returned six-second previews.
+  // Only accept streams from an explicit player media source list.
+  var config=jsonAfter(html,/\b(?:videoSources|playerConfig|sources)\s*[:=]\s*/);
+  if(config){
+    var sourceList=Array.isArray(config)?config:(config.sources||config.videoSources||config.streams||[]);
+    if(Array.isArray(sourceList)){
+      for(var i=0;i<sourceList.length;i++){
+        var v=sourceList[i];
+        if(v&&typeof v==="object")add(v.url||v.src||v.file,v.label||v.quality||"Auto");
+      }
     }
   }
-  if(config)walk(config,0,"Auto");
-  // A standalone HLS master is acceptable; do not treat arbitrary page video URLs as full videos.
-  if(!streams.length){
-    var masters=html.match(/https?:[^"'\s<>]+(?:master|playlist)[^"'\s<>]*\.m3u8(?:\?[^"'\s<>]*)?/gi)||[];
-    for(var j=0;j<masters.length;j++)add(masters[j],"Auto HLS");
-  }
-  if(!streams.length)throw new Error("Full-length stream not verified; refusing to play a preview clip");
-  streams.sort(function(a,b){return (/m3u8/i.test(a.url)?1:0)-(/m3u8/i.test(b.url)?1:0);});
+  if(!streams.length)throw new Error("No verified full-length streams in player source list; refusing preview playback");
   return streams;
 }
 function getInfo(url){
