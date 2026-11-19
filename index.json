@@ -3,7 +3,7 @@
     {
       "id": "org.plexo.js.internetarchive",
       "name": "Internet Archive Movies",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "Movies",
       "adult": false,
       "description": "Free public-domain and openly licensed films",
