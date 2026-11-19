@@ -16,7 +16,7 @@ var MIRRORS = [
 
 function looksBlocked(html) {
   var s = String(html || "").trim();
-  if (!s || s.length < 300) return true;\n  if (/captcha|cf-chl|verify you are human/i.test(s.slice(0,6000))) return true;
+  if (!s || s.length < 300) return true;\n  if (/captcha|cf-chl|verify you are human/i.test(s.slice(0,6000))) return true;\n  if (/captcha|cf-chl|verify you are human/i.test(s.slice(0,6000))) return true;
   if (/not available in your country|access denied|this site can't be reached|blocked by your isp|court order|legal notice/i.test(s)) {
     return true;
   }
@@ -173,11 +173,11 @@ function extractStreamEntries(html, base, referer) {
 
   var foundMedia = findMediaUrls(html);
   for (var m = 0; m < foundMedia.length; m++) {
-    var h2 = heightOf(foundMedia[m]);
+    if (/preview|trailer|sprite|thumb/i.test(foundMedia[m])) continue;\n    var h2 = heightOf(foundMedia[m]);
     pushStream(h2 ? h2 + "p" : (/\.m3u8/i.test(foundMedia[m]) ? "Auto" : "MP4"), foundMedia[m]);
   }
 
-  var finalized = finalizeStreams(list);
+  var finalized = list.filter(function(s){return !/preview|trailer|sprite|thumb/i.test(s.url);});\n  if (!finalized.length) throw new Error('No full video stream found');
   for (var f = 0; f < finalized.length; f++) {
     finalized[f].headers = hdrs;
   }
@@ -212,24 +212,9 @@ function getStream(url) {
   }
 }
 
-function getInfo(url) {
-  return pageInfo(url);
-}
+function getInfo(url) { var r=fetchAny(url); __pages[r.url]=r.html; return pageInfo(r.url); }
 
-function getChannel(url, page) { return browse(url, page); }\n\nfunction getComments(url, page) {
+function getChannel(url) { var r=fetchAny(url); var title=(r.html.match(/<title>([^<]+)/i)||[])[1]||'Channel'; return {url:r.url,name:decodeHtml(title),avatar:'',banner:'',description:''}; }\n\nfunction getComments(url, page) {
   return [];
 }
   
-
-function decodeHtml(s) {return String(s||"").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&#x27;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">");}
-function absUrl(base,u) {if(!u)return "";try{return new URL(String(u).replace(/\\\\\//g,"/"),base).href;}catch(e){return "";}}
-function jsonAfter(html,re) {var m=re.exec(html);if(!m)return null;var start=m.index+m[0].length,open=html.slice(start).search(/[\\[{]/);if(open<0)return null;start+=open;var depth=0,quote=false,esc=false;for(var i=start;i<html.length;i++){var ch=html[i];if(quote){if(esc)esc=false;else if(ch==="\\\\")esc=true;else if(ch==='"')quote=false;}else{if(ch==='"')quote=true;else if(ch==="{"||ch==="[")depth++;else if(ch==="}"||ch==="]"){depth--;if(!depth){try{return JSON.parse(html.slice(start,i+1));}catch(e){return null;}}}}}return null;}
-function toSeconds(v){if(typeof v==="number")return v;var p=String(v||"").split(":").map(Number);return p.reduce(function(a,b){return a*60+(b||0)},0);}
-function anchorList(html,base,re){var out=[],seen={};var a=/<a\\b([^>]*href=["']([^"']+)["'][^>]*)>([\\s\\S]*?)<\\/a>/gi,m;while((m=a.exec(html))&&out.length<80){if(!re.test(m[2]))continue;var url=absUrl(base,m[2]);if(!url||seen[url])continue;seen[url]=true;var title=(m[1].match(/title=["']([^"']+)/i)||m[3].match(/alt=["']([^"']+)/i)||[])[1]||m[3].replace(/<[^>]+>/g," ").trim();var thumb=(m[3].match(/(?:data-src|src|data-thumb)=["']([^"']+)/i)||[])[1]||"";out.push({id:url,url:url,title:decodeHtml(title),thumb:absUrl(base,thumb)});}return out;}
-function attachExtras(items){return items;}
-function withPage(url,p){if(p<=1)return url;return String(url)+(String(url).indexOf("?")>=0?"&":"?")+"page="+p;}
-function heightOf(s){var m=String(s||"").match(/(?:^|[^0-9])(2160|1440|1080|720|480|360|240)(?:p|[^0-9]|$)/i);return m?Number(m[1]):0;}
-function findMediaUrls(html){var s=String(html||"").replace(/\\\\\//g,"/").replace(/\\\\u0026/g,"&");var m=s.match(/https?:\\/\\/[^"'\\s<>\\\\]+?\\.(?:mp4|m3u8|webm|mpd)(?:\\?[^"'\\s<>\\\\]*)?/gi)||[];return Array.from(new Set(m));}
-function finalizeStreams(list){return list.filter(function(x){return !/preview|trailer|thumb|sprite/i.test(x.url)}).sort(function(a,b){return heightOf(b.label)-heightOf(a.label)});}
-function anyStreams(html){return findMediaUrls(html).filter(function(u){return !/preview|trailer|thumb/i.test(u)}).map(function(url){var h=heightOf(url);return {label:h?h+"p":"Auto",url:url};});}
-function pageInfo(url){var r=fetchAny(url);var title=(r.html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)/i)||r.html.match(/<title>([^<]+)/i)||[])[1]||"";var thumb=(r.html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)/i)||[])[1]||"";var channel=(r.html.match(/href=["']([^"']*\\/(?:users|channels|creators)\\/[^"']+)["']/i)||[])[1]||"";return {id:r.url,url:r.url,title:decodeHtml(title),thumb:absUrl(r.base,thumb),creatorUrl:absUrl(r.base,channel),streams:extractStreamEntries(r.html,r.base,r.url)};}
