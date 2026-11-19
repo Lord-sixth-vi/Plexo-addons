@@ -1,7 +1,7 @@
 {
   "id": "org.plexo.js.xhamster",
   "name": "xHamster",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "category": "18+",
   "adult": true,
   "description": "Browse, search, and stream videos from xHamster with mirror fallback",
