@@ -1,6 +1,6 @@
 // @name        Internet Archive Movies
 // @id          org.plexo.js.internetarchive
-// @version     1.1.3
+// @version     1.2.0
 // @login       https://archive.org/account/login
 // @icon        https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg
 // @author      Plexo add-ons
@@ -9,7 +9,8 @@
 // @description Browse and play openly licensed and public-domain films from Internet Archive
 
 var IA = "https://archive.org";
-var PAGE_SIZE = 24;
+var PAGE_SIZE = 16;
+var IA_METADATA_CACHE = {};
 var IA_LOGO = "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg";
 var IA_FIELDS = ["identifier", "title", "creator", "date", "year", "runtime", "description", "collection", "downloads", "licenseurl", "rights", "publicdate"];
 
@@ -18,6 +19,25 @@ function iaJson(url) {
   var raw = getPage(url);
   try { return JSON.parse(raw); }
   catch (e) { throw new Error("Internet Archive returned invalid data"); }
+}
+function iaMetadata(id) {
+  if (IA_METADATA_CACHE[id]) return IA_METADATA_CACHE[id];
+  var m = iaJson(IA + "/metadata/" + encodeURIComponent(id));
+  IA_METADATA_CACHE[id] = m;
+  return m;
+}
+function imageFromMetadata(meta, id) {
+  var files = meta && meta.files || [];
+  var best = "", bestScore = -1;
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i], name = String(f && f.name || "");
+    if (!/[.](jpg|jpeg|png|webp)$/i.test(name) || /__ia_thumb|_thumb|thumbnail|tile|sprite|waveform/i.test(name)) continue;
+    var w = parseInt(f.width, 10) || 0, h = parseInt(f.height, 10) || 0;
+    var score = Math.min(w || 640, 1920) * Math.min(h || 360, 1080);
+    if (/poster|cover|artwork|front|scan/i.test(name)) score += 1500000;
+    if (score > bestScore) { bestScore = score; best = name; }
+  }
+  return best ? IA + "/download/" + encodeURIComponent(id) + "/" + encodeFilePath(best) : IA + "/services/img/" + encodeURIComponent(id);
 }
 function firstValue(v) {
   if (Array.isArray(v)) return v.length ? String(v[0]) : "";
@@ -60,6 +80,7 @@ function makeCard(doc) {
     url: IA + "/details/" + encodeURIComponent(id),
     title: title,
     thumb: IA + "/services/img/" + encodeURIComponent(id),
+    creatorThumb: IA_LOGO,
     duration: duration,
     creator: creator,
     creatorUrl: creatorUrl
@@ -70,6 +91,13 @@ function cardsFromDocs(docs) {
   for (var i = 0; i < docs.length; i++) {
     var c = makeCard(docs[i]);
     if (c) out.push(c);
+  }
+  // Enrich only the first few cards to avoid a metadata request for every item.
+  for (var k = 0; k < out.length && k < 6; k++) {
+    try {
+      var meta = iaMetadata(out[k].id);
+      out[k].thumb = imageFromMetadata(meta, out[k].id);
+    } catch (e) {}
   }
   return attachExtras(out, "", IA);
 }
@@ -105,7 +133,7 @@ function getStream(url) {
   var m = String(url || "").match(/archive[.]org\/details\/([^/?#]+)/i);
   if (!m) throw new Error("Invalid Internet Archive video link");
   var id = decodeURIComponent(m[1]);
-  var meta = iaJson(IA + "/metadata/" + encodeURIComponent(id));
+  var meta = iaMetadata(id);
   if (!meta || !meta.metadata) throw new Error("Video unavailable");
   if (!isAllowedLicense(meta)) throw new Error("Licence not confirmed for this video");
   var files = Array.isArray(meta.files) ? meta.files : [];
@@ -123,10 +151,17 @@ function getStream(url) {
     var fileUrl = IA + "/download/" + encodeURIComponent(id) + "/" + encodeFilePath(name);
     if (seen[fileUrl]) continue;
     seen[fileUrl] = true;
-    var entry = {label: label, url: fileUrl, rank: q, ext: ext};
+    var fmt = String(f.format || "").toLowerCase();
+    var compatible = ext === "mp4" || ext === "m4v";
+    var isH264 = /h[.]?264|avc|mpeg4|mpeg-4/i.test(fmt + " " + name);
+    var distance = q ? Math.abs(q - 720) : 600;
+    var startupRank = (compatible ? 20000 : ext === "m3u8" ? 12000 : 0) +
+      (isH264 ? 2500 : 0) - distance * 2 -
+      (q > 720 ? 800 : 0) - (f.source === "original" ? 250 : 0);
+    var entry = {label: label, url: fileUrl, rank: q, ext: ext, startupRank: startupRank};
     if (ext === "mpd") dash.push(entry); else streams.push(entry);
   }
-  streams.sort(function(a,b) { return b.rank-a.rank || (a.ext==="mp4" ? -1 : 1); });
+  streams.sort(function(a,b) { return b.startupRank-a.startupRank || b.rank-a.rank; });
   var output = [], labels = {};
   for (var j=0; j<streams.length; j++) {
     var s=streams[j], key=s.label;
@@ -136,7 +171,20 @@ function getStream(url) {
   }
   if (output.length) {
     // finalizeStreams expands HLS masters and keeps quality options.
-    output = finalizeStreams(output);
+    // Keep preferred 720p-compatible MP4 first; finalizeStreams sorts by resolution,
+    // which would otherwise force the highest-bitrate file at startup.
+    var expanded = [];
+    for (var n = 0; n < output.length; n++) {
+      if (/[.]m3u8(?:[?#]|$)/i.test(output[n].url)) {
+        try {
+          var variants = hlsVariants(output[n].url);
+          variants.sort(function(a,b) { return Math.abs(a.h-720)-Math.abs(b.h-720); });
+          for (var v = 0; v < variants.length; v++) expanded.push({label:variants[v].h ? variants[v].h+"p HLS" : "HLS",url:variants[v].url});
+        } catch(e) {}
+        expanded.push(output[n]);
+      } else expanded.push(output[n]);
+    }
+    output = expanded;
   }
   for (var k=0;k<dash.length;k++) output.push({label:dash[k].label+" DASH",url:dash[k].url});
   if (!output.length) throw new Error("No playable video files found");
@@ -147,13 +195,14 @@ function getInfo(url) {
   if (info && info.creator) return info;
   var m = String(url || "").match(/archive\.org\/details\/([^/?#]+)/i);
   if (!m) return { creator: "", creatorUrl: "", actors: [] };
-  var meta = iaJson(iaUrl("/metadata/" + encodeURIComponent(decodeURIComponent(m[1]))));
+  var meta = iaMetadata(decodeURIComponent(m[1]));
   var md = (meta && meta.metadata) || {};
   var creator = firstValue(md.creator);
   return {
     creator: creator,
     creatorUrl: creator ? IA + "/search.php?query=" + encodeURIComponent('creator:"' + creator.replace(/"/g, "") + '" AND mediatype:movies AND collection:opensource_movies') : "",
-    actors: []
+    actors: [],
+    creatorThumb: IA_LOGO
   };
 }
 function getComments(url, page) { return []; }
