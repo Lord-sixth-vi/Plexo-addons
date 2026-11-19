@@ -1,6 +1,6 @@
 // @name        xHamster OTT Test (Experimental)
 // @id          org.plexo.js.xhamster_test
-// @version     0.1.3
+// @version     0.1.4
 // @author      Plexo add-ons
 // @domains     xhamster.com, www.xhamster.com, m.xhamster.com, xhamster.desi, www.xhamster.desi
 // @category    18+
@@ -44,27 +44,36 @@ function xhList(path){var p=xhFetch(path);return xhCards(p.html,p.base);}
 function home(page){return xhList("/"+(page>1?"?page="+page:""));}
 function search(query,page){return xhList("/search/"+encodeURIComponent(String(query||"").trim())+(page>1?"?page="+page:""));}
 function browse(url,page){var path=xhPath(url);return xhList(path+(page>1?(path.indexOf("?")<0?"?":"&")+"page="+page:""));}
-function getStream(url){
-  var p=xhFetch(xhPath(url)),html=p.html,streams=[],seen={};
-  function add(u,label){
-    u=decodeHtml(String(u||"").replace(/\\u0026/g,"&").replace(/\\\//g,"/"));
-    if(!/^https?:\/\//i.test(u)||!/[.](?:mp4|m3u8|mpd)(?:[?#]|$)/i.test(u)||seen[u])return;
-    if(/(?:preview|trailer|teaser|thumb|sprite|sample|_6s|6sec)/i.test(u))return;
-    seen[u]=true;streams.push({label:label||"Auto",url:u,headers:{Referer:p.base+"/"}});
+function getStream(url) {
+  var p = xhFetch(xhPath(url));
+  var html = p.html;
+  var streams = [];
+  var seen = {};
+  function add(u, label) {
+    u = decodeHtml(String(u || ""));
+    u = u.split("\\\\/").join("/");
+    u = u.split("\\u0026").join("&");
+    if (u.indexOf("https://") !== 0 && u.indexOf("http://") !== 0) return;
+    if (u.indexOf(".mp4") < 0 && u.indexOf(".m3u8") < 0 && u.indexOf(".mpd") < 0) return;
+    var lower = u.toLowerCase();
+    if (lower.indexOf("preview") >= 0 || lower.indexOf("trailer") >= 0 ||
+        lower.indexOf("sprite") >= 0 || lower.indexOf("thumb") >= 0 ||
+        lower.indexOf("sample") >= 0) return;
+    if (seen[u]) return;
+    seen[u] = true;
+    streams.push({label: label || "Auto", url: u, headers: {Referer: p.base + "/"}});
   }
-  // Generic page URL scraping repeatedly returned six-second previews.
-  // Only accept streams from an explicit player media source list.
-  var config=jsonAfter(html,/\b(?:videoSources|playerConfig|sources)\s*[:=]\s*/);
-  if(config){
-    var sourceList=Array.isArray(config)?config:(config.sources||config.videoSources||config.streams||[]);
-    if(Array.isArray(sourceList)){
-      for(var i=0;i<sourceList.length;i++){
-        var v=sourceList[i];
-        if(v&&typeof v==="object")add(v.url||v.src||v.file,v.label||v.quality||"Auto");
+  var config = jsonAfter(html, /(?:videoSources|playerConfig|sources)[ ]*[:=][ ]*/);
+  if (config) {
+    var sourceList = Array.isArray(config) ? config : (config.sources || config.videoSources || config.streams || []);
+    if (Array.isArray(sourceList)) {
+      for (var i = 0; i < sourceList.length; i++) {
+        var v = sourceList[i];
+        if (v && typeof v === "object") add(v.url || v.src || v.file, v.label || v.quality || "Auto");
       }
     }
   }
-  if(!streams.length)throw new Error("No verified full-length streams in player source list; refusing preview playback");
+  if (!streams.length) throw new Error("No verified full-length streams in player source list");
   return streams;
 }
 function getInfo(url){
