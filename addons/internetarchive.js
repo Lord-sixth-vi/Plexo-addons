@@ -1,6 +1,8 @@
 // @name        Internet Archive Movies
 // @id          org.plexo.js.internetarchive
-// @version     1.0.0
+// @version     1.1.0
+// @login       https://archive.org/account/login
+// @icon        https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg
 // @author      Plexo add-ons
 // @domains     archive.org
 // @category    Movies
@@ -8,7 +10,8 @@
 
 var IA = "https://archive.org";
 var PAGE_SIZE = 24;
-var IA_FIELDS = ["identifier", "title", "creator", "date", "year", "runtime", "description", "collection", "downloads", "licenseurl", "rights"];
+var IA_LOGO = "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg";
+var IA_FIELDS = ["identifier", "title", "creator", "date", "year", "runtime", "description", "collection", "downloads", "licenseurl", "rights", "publicdate"];
 
 function iaUrl(path) { return IA + path; }
 function iaJson(url) {
@@ -56,7 +59,7 @@ function makeCard(doc) {
     id: id,
     url: IA + "/details/" + encodeURIComponent(id),
     title: title,
-    thumb: IA + "/services/img/" + encodeURIComponent(id),
+    thumb: IA + "/download/" + encodeURIComponent(id) + "/__ia_thumb.jpg",
     duration: duration,
     creator: creator,
     creatorUrl: creatorUrl
@@ -91,51 +94,53 @@ function browse(url, page) {
 function isAllowedLicense(meta) {
   var md = (meta && meta.metadata) || {};
   var license = (firstValue(md.licenseurl) + " " + firstValue(md.license) + " " + firstValue(md.rights)).toLowerCase();
-  return /creativecommons\.org\/(?:licenses\/(?:by|by-sa|by-nc|by-nd)(?:-sa|-nc|-nd)?\/|publicdomain\/(?:zero|mark)\/)/i.test(license) || /public domain|no known copyright restrictions|copyright free/i.test(license);
+  return /creativecommons\\.org\\/(?:licenses\\/|publicdomain\\/)/i.test(license) ||
+    /public domain|no known copyright restrictions|copyright free|creative commons/i.test(license) ||
+    /opensource_movies|prelinger|feature_films/i.test(firstValue(md.collection));
 }
-function fileQuality(file) {
-  var s = String(file.name || "") + " " + String(file.format || "");
-  var h = heightOf(s);
-  if (h) return h;
-  var m = s.match(/(?:^|[^0-9])(2160|1440|1080|720|576|540|480|360|240)(?:p|[^0-9])/i);
-  return m ? parseInt(m[1], 10) : 0;
+function encodeFilePath(name) {
+  return String(name).split("/").map(function(part) { return encodeURIComponent(part); }).join("/");
 }
 function getStream(url) {
-  var m = String(url || "").match(/archive\.org\/details\/([^/?#]+)/i);
+  var m = String(url || "").match(/archive\\.org\\/details\\/([^/?#]+)/i);
   if (!m) throw new Error("Invalid Internet Archive video link");
   var id = decodeURIComponent(m[1]);
-  var meta = iaJson(iaUrl("/metadata/" + encodeURIComponent(id)));
-  if (!meta || !meta.metadata) throw new Error("Video removed or unavailable");
-  if (!isAllowedLicense(meta)) throw new Error("This item has no clear public-domain or Creative Commons licence");
+  var meta = iaJson(IA + "/metadata/" + encodeURIComponent(id));
+  if (!meta || !meta.metadata) throw new Error("Video unavailable");
+  if (!isAllowedLicense(meta)) throw new Error("Licence not confirmed for this video");
   var files = Array.isArray(meta.files) ? meta.files : [];
-  var candidates = [];
+  var streams = [], dash = [], seen = {};
   for (var i = 0; i < files.length; i++) {
-    var f = files[i];
-    if (!f || !f.name || f.source === "metadata" || f.private === "true") continue;
-    var name = String(f.name);
-    if (!/\.(?:mp4|webm|m3u8|mpd)$/i.test(name)) continue;
-    if (/\.(?:torrent|sample)\./i.test(name)) continue;
-    var fmt = String(f.format || "").toLowerCase();
-    if (/mpeg4|h\.264|webm|mpeg dash|mpeg-dash|hls/i.test(fmt) || /\.(?:mp4|webm|m3u8|mpd)$/i.test(name)) {
-      var q = fileQuality(f);
-      var formatLabel = String(f.format || "").trim();
-      if (formatLabel.length > 28) formatLabel = formatLabel.slice(0, 28);
-      candidates.push({ label: q ? q + "p" : (formatLabel || (name.match(/\.mpd$/i) ? "DASH" : (name.match(/\.webm$/i) ? "WebM" : (name.match(/\.m3u8$/i) ? "HLS" : "MP4")))), url: IA + "/download/" + encodeURIComponent(id) + "/" + encodeURIComponent(name), dash: /\.mpd$/i.test(name), q: fileQuality(f) });
-    }
+    var f = files[i], name = f && String(f.name || "");
+    if (!name || f.private === "true" || f.private === true || f.source === "metadata") continue;
+    if (!/\\.(mp4|m4v|webm|m3u8|mpd)$/i.test(name)) continue;
+    if (/sample|preview|thumb/i.test(name)) continue;
+    var ext = (name.match(/\\.([^.]+)$/) || [,"mp4"])[1].toLowerCase();
+    var height = parseInt(f.height, 10) || heightOf(name) || 0;
+    var width = parseInt(f.width, 10) || 0;
+    var q = height || (width >= 3840 ? 2160 : width >= 2560 ? 1440 : width >= 1920 ? 1080 : width >= 1280 ? 720 : width >= 854 ? 480 : 0);
+    var label = q ? q + "p" : (String(f.format || "").trim() || ext.toUpperCase());
+    var fileUrl = IA + "/download/" + encodeURIComponent(id) + "/" + encodeFilePath(name);
+    if (seen[fileUrl]) continue;
+    seen[fileUrl] = true;
+    var entry = {label: label, url: fileUrl, rank: q, ext: ext};
+    if (ext === "mpd") dash.push(entry); else streams.push(entry);
   }
-  candidates.sort(function (a, b) { return b.q - a.q; });
-  var direct = [];
-  var dash = [];
-  for (var j = 0; j < candidates.length; j++) {
-    if (candidates[j].dash) dash.push({ label: candidates[j].label, url: candidates[j].url });
-    else direct.push({ label: candidates[j].label, url: candidates[j].url });
+  streams.sort(function(a,b) { return b.rank-a.rank || (a.ext==="mp4" ? -1 : 1); });
+  var output = [], labels = {};
+  for (var j=0; j<streams.length; j++) {
+    var s=streams[j], key=s.label;
+    if (labels[key]) key = s.label + " (" + s.ext.toUpperCase() + " " + (labels[s.label]+1) + ")";
+    labels[s.label] = (labels[s.label] || 0)+1;
+    output.push({label:key,url:s.url});
   }
-  var result = [];
-  if (direct.length) result = finalizeStreams(direct);
-  else if (dash.length) result = dash;
-  else throw new Error("No playable MP4, WebM or HLS file is available");
-  for (var k = 0; k < dash.length; k++) result.push(dash[k]);
-  return result;
+  if (output.length) {
+    // finalizeStreams expands HLS masters and keeps quality options.
+    output = finalizeStreams(output);
+  }
+  for (var k=0;k<dash.length;k++) output.push({label:dash[k].label+" DASH",url:dash[k].url});
+  if (!output.length) throw new Error("No playable video files found");
+  return output;
 }
 function getInfo(url) {
   var info = pageInfo(url);
