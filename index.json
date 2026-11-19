@@ -11,6 +11,16 @@
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/internetarchive.js",
       "logo": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg",
       "icon": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg"
+    },
+    {
+      "id": "org.plexo.js.dailymotion",
+      "name": "Dailymotion (Experimental)",
+      "version": "0.1.0",
+      "category": "Video",
+      "adult": false,
+      "description": "Public browsing, thumbnails and best-effort stream extraction; playback unverified",
+      "site": "dailymotion.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/dailymotion.js"
     }
   ]
 }
