@@ -1,6 +1,6 @@
 // @name        xHamster OTT Test (Experimental)
 // @id          org.plexo.js.xhamster_test
-// @version     0.1.0
+// @version     0.1.1
 // @author      Plexo add-ons
 // @domains     xhamster.com, www.xhamster.com, m.xhamster.com, xhamster.desi, www.xhamster.desi
 // @category    18+
@@ -13,15 +13,15 @@ function xhPath(url) {
   return m[1];
 }
 function xhFetch(path) {
-  var error="";
+  var errors=[];
   for(var i=0;i<XH_HOSTS.length;i++){
     try{
       var base=XH_HOSTS[i],html=getPage(base+path);
       if(!html||html.length<500||/captcha|access denied|not available in your country/i.test(html.slice(0,2000)))throw new Error("Blocked or empty response");
       return {html:html,base:base};
-    }catch(e){error=String(e.message||e);}
+    }catch(e){errors.push(base+": "+String(e.message||e));}
   }
-  throw new Error("No accessible xHamster host: "+error);
+  throw new Error("No accessible xHamster host. "+errors.join(" | ").slice(0,450));
 }
 function xhText(s){return decodeHtml(String(s||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim());}
 function xhCards(html,base) {
@@ -41,7 +41,7 @@ function xhCards(html,base) {
   return out;
 }
 function xhList(path){var p=xhFetch(path);return xhCards(p.html,p.base);}
-function home(page){return xhList("/videos/"+(page>1?"?page="+page:""));}
+function home(page){return xhList("/"+(page>1?"?page="+page:""));}
 function search(query,page){return xhList("/search/"+encodeURIComponent(String(query||"").trim())+(page>1?"?page="+page:""));}
 function browse(url,page){var path=xhPath(url);return xhList(path+(page>1?(path.indexOf("?")<0?"?":"&")+"page="+page:""));}
 function getStream(url){
