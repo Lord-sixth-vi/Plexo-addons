@@ -1,26 +1,3 @@
 {
-  "addons": [
-    {
-      "id": "org.plexo.js.internetarchive",
-      "name": "Internet Archive Movies",
-      "version": "1.2.0",
-      "category": "Movies",
-      "adult": false,
-      "description": "Free public-domain and openly licensed films",
-      "site": "archive.org",
-      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/ott/internetarchive.js",
-      "logo": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg",
-      "icon": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg"
-    },
-    {
-      "id": "org.plexo.js.spankbang",
-      "name": "SpankBang (Experimental)",
-      "version": "0.1.0",
-      "category": "18+",
-      "adult": true,
-      "description": "Experimental public browsing, search filters and up-to-4K stream discovery; playback unverified",
-      "site": "spankbang.com",
-      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/are%20you%20naughty/spankbang.js"
-    }
-  ]
+  "addons": []
 }
