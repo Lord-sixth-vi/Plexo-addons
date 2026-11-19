@@ -1,6 +1,6 @@
 // @name        Internet Archive Movies
 // @id          org.plexo.js.internetarchive
-// @version     1.1.1
+// @version     1.1.2
 // @login       https://archive.org/account/login
 // @icon        https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg
 // @author      Plexo add-ons
@@ -34,7 +34,7 @@ function queryUrl(q, page, sort) {
   return iaUrl("/advancedsearch.php?" + p);
 }
 function movieQuery(extra) {
-  return "mediatype:movies AND collection:opensource_movies" + (extra ? " AND (" + extra + ")" : "");
+  return "mediatype:movies AND (collection:feature_films OR collection:prelinger OR collection:opensource_movies)" + (extra ? " AND (" + extra + ")" : "");
 }
 function searchDocs(q, page, sort) {
   var data = iaJson(queryUrl(q, page, sort));
@@ -45,7 +45,7 @@ function makeCard(doc) {
   var id = firstValue(doc.identifier);
   var title = cleanText(firstValue(doc.title));
   if (!id || !title) return null;
-  var creator = firstValue(doc.creator);
+  var creator = firstValue(doc.creator) || "Internet Archive";
   var creatorUrl = "";
   if (creator) creatorUrl = IA + "/search.php?query=" + encodeURIComponent('creator:"' + creator.replace(/"/g, "") + '" AND mediatype:movies AND collection:opensource_movies');
   var runtime = firstValue(doc.runtime);
@@ -59,7 +59,7 @@ function makeCard(doc) {
     id: id,
     url: IA + "/details/" + encodeURIComponent(id),
     title: title,
-    thumb: IA + "/download/" + encodeURIComponent(id) + "/__ia_thumb.jpg",
+    thumb: IA + "/services/img/" + encodeURIComponent(id),
     duration: duration,
     creator: creator,
     creatorUrl: creatorUrl
@@ -74,7 +74,7 @@ function cardsFromDocs(docs) {
   return attachExtras(out, "", IA);
 }
 function home(page) {
-  return cardsFromDocs(searchDocs(movieQuery(""), page, "downloads desc"));
+  return cardsFromDocs(searchDocs(movieQuery("runtime:[600 TO *]"), page, "downloads desc"));
 }
 function search(query, page) {
   var term = String(query || "").trim();
