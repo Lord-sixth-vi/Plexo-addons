@@ -1,6 +1,6 @@
 // @name        xHamster
 // @id          org.plexo.js.xhamster
-// @version     2.4.0
+// @version     2.5.0
 // @author      Plexo add-ons
 // @domains     xhamster.desi, xhamster.com, xhamster2.com, xhamster3.com, xhamster19.com, xhamster43.desi, xhopen.com, xhaccess.com, xhamster.one, xhcdn.com, xhpingcdn.com, xhmstr.com
 // @category    18+
@@ -41,7 +41,7 @@ var MIRRORS = [
   "https://xhaccess.com",
   "https://xhamster.one"
 ];
-var __goodMirror = "";
+var __goodMirror = (typeof http.recall === "function") ? String(http.recall("mirror") || "") : "";
 var __videoPages = {};
 
 // ---------- Fetching with mirror fallback ----------
@@ -80,11 +80,15 @@ function fetchAny(u) {
     try {
       var html = getPage(target, { "Referer": order[j] + "/", "Cookie": "parental-control=yes; video_titles_translation=0" });
       if (looksBlocked(html)) throw new Error("blocked");
+      if (__goodMirror !== order[j] && typeof http.remember === "function") http.remember("mirror", order[j]);
       __goodMirror = order[j];
       return { base: order[j], url: target, html: html };
     } catch (e) {
       errors.push(order[j].replace("https://", "") + ": " + (e && e.message ? e.message : "error"));
-      if (__goodMirror === order[j]) __goodMirror = "";
+      if (__goodMirror === order[j]) {
+        __goodMirror = "";
+        if (typeof http.remember === "function") http.remember("mirror", "");
+      }
     }
   }
   throw new Error("xHamster couldn't be reached on any mirror (" + errors.slice(0, 3).join("; ") + ")");

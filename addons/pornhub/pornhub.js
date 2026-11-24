@@ -1,6 +1,6 @@
 // @name        Pornhub
 // @id          org.plexo.js.pornhub
-// @version     1.1.0
+// @version     1.2.0
 // @author      Plexo add-ons
 // @domains     pornhub.org, pornhub.com, pornhub.net, phncdn.com, phprcdn.com
 // @category    18+
@@ -38,7 +38,7 @@ var MIRRORS = [
   "https://fr.pornhub.org"
 ];
 var COOKIE = "accessAgeDisclaimerPH=1; accessAgeDisclaimerUK=1; age_verified=1; accessPH=1; platform=pc; cookiesBannerSeen=1";
-var __goodMirror = "";
+var __goodMirror = (typeof http.recall === "function") ? String(http.recall("mirror") || "") : "";
 var __videoPages = {};
 
 // ---------- Fetching with mirror fallback ----------
@@ -80,11 +80,15 @@ function fetchAny(u, extra) {
       if (extra) for (var k in extra) headers[k] = extra[k];
       var html = getPage(target, headers);
       if (looksBlocked(html)) throw new Error("blocked");
+      if (__goodMirror !== order[j] && typeof http.remember === "function") http.remember("mirror", order[j]);
       __goodMirror = order[j];
       return { base: order[j], url: target, html: html };
     } catch (e) {
       errors.push(order[j].replace("https://", "") + ": " + (e && e.message ? e.message : "error"));
-      if (__goodMirror === order[j]) __goodMirror = "";
+      if (__goodMirror === order[j]) {
+        __goodMirror = "";
+        if (typeof http.remember === "function") http.remember("mirror", "");
+      }
     }
   }
   throw new Error("Pornhub couldn't be reached on any mirror (" + errors.slice(0, 3).join("; ") + ")");
@@ -118,8 +122,7 @@ function tileFrom(chunk, base) {
   }
   title = str(title).trim();
   if (!title) return null;
-  var thumb = attr(img, "data-mediumthumb") || attr(img, "data-thumb_url") || attr(img, "data-image") || attr(img, "data-src") || attr(img, "src");
-  if (!/^https?:|^\/\//.test(thumb) || /blank|placeholder|data:image/i.test(thumb)) thumb = findThumb(chunk, base);
+  var thumb = phThumb(chunk, img);
   var dm = chunk.match(/<var class="duration">\s*([\d:]+)\s*</i) || chunk.match(/class="duration"[^>]*>\s*([\d:]+)\s*</i);
   var preview = attr(img, "data-mediabook") || attr(img, "data-previewvideo") || previewIn(chunk, base);
   var up = chunk.match(/<div class="usernameWrap[^"]*"[^>]*>[\s\S]{0,400}?<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
@@ -141,6 +144,23 @@ function tileFrom(chunk, base) {
     preview: /\.(mp4|webm)/i.test(preview) ? absUrl(base, decodeHtml(preview)) : "",
     views: views ? textOf(views[1]) : ""
   };
+}
+
+// The tile's picture. Pornhub keeps the real link in different attributes on desktop and phone pages,
+// sometimes on a <source>/<picture> or a background style, while "src" is often a blank placeholder.
+function phThumb(chunk, img) {
+  var names = ["data-mediumthumb", "data-thumb_url", "data-image", "data-src", "data-original", "data-poster", "data-path", "src"];
+  var imgs = [img].concat(chunk.match(/<img\b[^>]*>/gi) || []);
+  for (var n = 0; n < names.length; n++) {
+    for (var i = 0; i < imgs.length; i++) {
+      var v = decodeHtml(attr(imgs[i], names[n]));
+      if (/^(https?:)?\/\//.test(v) && !/blank|placeholder|spacer|\.gif(\?|$)|data:image/i.test(v)) return absUrl("https://ei.phncdn.com", v);
+    }
+  }
+  var set = chunk.match(/srcset="([^"\s,]+)/i);
+  if (set && /^(https?:)?\/\//.test(set[1])) return absUrl("https://ei.phncdn.com", decodeHtml(set[1]));
+  var any = chunk.replace(/\\\//g, "/").match(/https?:\/\/[a-z0-9.-]*phncdn\.com\/[^"'\s)<>]+?\.(?:jpe?g|webp|png)[^"'\s)<>]*/i);
+  return any ? decodeHtml(any[0]) : "";
 }
 
 // Video tiles of a page. scope = the part of the page to read (e.g. only "Related videos").
@@ -345,6 +365,11 @@ function getStream(url) {
       var link = absUrl(res.base, str(d.videoUrl));
       var fmt = str(d.format).toLowerCase();
       if (d.remote || /get_media/.test(link)) {
+        // The mp4 list costs one more request before playback can start; only fetch it when the
+        // page gave no HLS qualities.
+        var hasHls = false;
+        for (var hh = 0; hh < defs.length; hh++) if (defs[hh] && str(defs[hh].format).toLowerCase() === "hls" && defs[hh].videoUrl) hasHls = true;
+        if (hasHls) continue;
         try {
           var list = JSON.parse(getPage(link, headers));
           for (var j = 0; j < list.length; j++) {
@@ -468,7 +493,7 @@ function debugReport(target) {
     try { h = home(1); } catch (e) { line("home failed: " + e.message); }
     line("home: " + h.length + " videos, mirror " + (__goodMirror || "none"));
     if (h.length) {
-      line("first card: " + h[0].title + " | thumb " + (h[0].thumb ? "yes" : "NO") + " | " + h[0].duration + "s | by " + (h[0].creator || "?"));
+      line("first card: " + h[0].title + " | thumb " + (h[0].thumb ? h[0].thumb.slice(0, 80) : "NO") + " | " + h[0].duration + "s | by " + (h[0].creator || "?"));
       videoUrl = h[0].url;
       for (var i = 0; i < h.length; i++) if (h[i].creatorUrl) { channelUrl = h[i].creatorUrl; break; }
     }
