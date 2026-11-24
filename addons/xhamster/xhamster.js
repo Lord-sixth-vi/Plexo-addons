@@ -1,6 +1,6 @@
 // @name        xHamster
 // @id          org.plexo.js.xhamster
-// @version     2.2.0
+// @version     2.3.0
 // @author      Plexo add-ons
 // @domains     xhamster.desi, xhamster.com, xhamster2.com, xhamster3.com, xhamster19.com, xhamster43.desi, xhopen.com, xhaccess.com, xhamster.one, xhcdn.com, xhpingcdn.com, xhmstr.com
 // @category    18+
@@ -131,9 +131,13 @@ function cardFrom(o, base) {
   var thumb = str(o.thumbURL || o.thumbUrl || o.imageURL || o.imageUrl || o.thumb || o.poster);
   var land = o.landing || o.author || o.channel || o.uploader || null;
   var creator = "", creatorUrl = "";
+  var creatorAvatar = "";
   if (land && typeof land === "object") {
     creator = str(land.name || land.title);
     creatorUrl = str(land.link || land.pageURL || land.url);
+    var lg = land.logo || land.avatar || land.avatarURL || land.avatarUrl || land.thumbURL || land.image || "";
+    if (lg && typeof lg === "object") lg = lg.url || lg.src || "";
+    creatorAvatar = str(lg);
   }
   var preview = str(o.trailerURL || o.trailerUrl || o.trailerFallbackUrl || o.previewURL || "");
   if (preview && !/\.(mp4|webm)/i.test(preview)) preview = "";
@@ -145,6 +149,7 @@ function cardFrom(o, base) {
     duration: toSeconds(o.duration || o.durationSeconds || 0),
     creator: decodeHtml(creator).trim(),
     creatorUrl: creatorUrl ? absUrl(base, creatorUrl) : "",
+    creatorAvatar: /^https?:|^\/\//.test(creatorAvatar) ? absUrl(base, creatorAvatar) : "",
     preview: preview ? absUrl(base, preview) : ""
   };
 }
@@ -301,7 +306,9 @@ function streamsFrom(html, base) {
         var q = heightOf(e.quality || e.label || "") || heightOf(e.url || "");
         if (q && tag && got[q]) continue;
         if (q) got[q] = true;
-        add(q ? q + "p" + tag : str(e.quality || "MP4") + tag, e.url, e.fallback);
+        var ql = str(e.quality || e.label || "");
+        if (!q && /^(auto|adaptive|hls)$/i.test(ql)) add("Auto" + tag, e.url, e.fallback);
+        else add(q ? q + "p" + tag : (ql || "MP4") + tag, e.url, e.fallback);
       }
     }
     var hls = sources.hls || {};
@@ -330,12 +337,13 @@ function getStream(url) {
   if (!list.length) throw new Error("No video links found (removed, private or premium-only)");
 
   var headers = { "Referer": res.url, "Origin": res.base };
+  for (var n = 0; n < list.length; n++) if (/^auto\b/i.test(list[n].label)) list[n].label = list[n].label.replace(/^auto/i, "Auto");
   var auto = list.filter(function (s) { return s.label === "Auto" || s.label === "Auto (AV1)"; });
 
   // Every quality inside the HLS playlists, so 1440p and 4K show up when the video has them.
   // One small playlist download; if it fails, the qualities found above are still used.
   var have = {};
-  for (var a = 0; a < list.length; a++) if (list[a].label !== "Auto") have[list[a].label] = true;
+  for (var a = 0; a < list.length; a++) if (list[a].label.indexOf("Auto") !== 0) have[list[a].label] = true;
   for (var m = 0; m < auto.length; m++) {
     var vars = [];
     try { vars = hlsVariants(auto[m].url, headers); } catch (e) { vars = []; }
