@@ -1,6 +1,6 @@
 // @name        xHamster
 // @id          org.plexo.js.xhamster
-// @version     2.3.0
+// @version     2.4.0
 // @author      Plexo add-ons
 // @domains     xhamster.desi, xhamster.com, xhamster2.com, xhamster3.com, xhamster19.com, xhamster43.desi, xhopen.com, xhaccess.com, xhamster.one, xhcdn.com, xhpingcdn.com, xhmstr.com
 // @category    18+
@@ -13,6 +13,7 @@
 //   getStream(url)      every quality (best first) plus an Auto HLS entry, with the Referer the CDN needs
 //   getInfo(url)        channel and cast of the video that was just opened
 //   channel(url)        name, picture, banner, subscribers, video count and about text of a channel
+//   shorts(page, q)     short clips for Plexo's Shorts tab (pick the add-on in Settings → Shorts → Shorts from)
 //   related(url)        videos the site recommends under the video (ready for a future Plexo version)
 //   search("debug")     test mode: shows what the add-on reads from the site instead of videos
 //   comments(url)       not offered: Plexo can't show add-on comments yet, so always []
@@ -614,4 +615,27 @@ function debugReport(target) {
     out.push({ id: "debug" + n, url: "https://xhamster.desi/#debug-" + n, title: (n + 1) + ". " + lines[n], thumb: "", duration: 0, creator: "Test mode" });
   }
   return out;
+}
+
+// ---------- Shorts tab ----------
+// Short clips for Plexo's Shorts tab: the site's own short-video page when it has one,
+// otherwise the shortest videos from the normal lists.
+
+function shortOnly(list) {
+  var s = list.filter(function (v) { return v.duration > 0 && v.duration <= 600; });
+  return s.length ? s : list;
+}
+
+function shorts(page, query) {
+  var p = page && page > 1 ? page : 1;
+  if (query) return shortOnly(search(query, p));
+  var paths = p === 1 ? ["/moments", "/shorts"] : ["/moments/" + p, "/shorts/" + p];
+  for (var i = 0; i < paths.length; i++) {
+    try {
+      var res = fetchAny(paths[i]);
+      var list = cardsFrom(res.html, res.base);
+      if (list.length >= 4) return list;
+    } catch (e) {}
+  }
+  return shortOnly(home(p));
 }

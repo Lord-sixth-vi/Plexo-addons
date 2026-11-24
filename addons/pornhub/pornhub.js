@@ -1,6 +1,6 @@
 // @name        Pornhub
 // @id          org.plexo.js.pornhub
-// @version     1.0.0
+// @version     1.1.0
 // @author      Plexo add-ons
 // @domains     pornhub.org, pornhub.com, pornhub.net, phncdn.com, phprcdn.com
 // @category    18+
@@ -13,6 +13,7 @@
 //   channel(url)        name, picture, banner, subscribers, video count and about text of that page
 //   getStream(url)      every quality (best first, up to 4K when the video has it) plus Auto
 //   getInfo(url)        uploader and pornstars of the video that was just opened
+//   shorts(page, q)     short clips for Plexo's Shorts tab (pick the add-on in Settings → Shorts → Shorts from)
 //   related(url)        the "Related videos" under the video
 //   comments(url)       the first page of comments (ready for when Plexo shows add-on comments)
 //   search("debug")     test mode: shows what the add-on reads from the site instead of videos
@@ -510,4 +511,38 @@ function debugReport(target) {
   var out = [];
   for (var n = 0; n < lines.length; n++) out.push({ id: "debug" + n, url: "https://www.pornhub.org/#debug-" + n, title: (n + 1) + ". " + lines[n], thumb: "", duration: 0, creator: "Test mode" });
   return out;
+}
+
+// ---------- Shorts tab ----------
+// Short clips for Plexo's Shorts tab: Pornhub's "Shorties" when available,
+// otherwise videos under 10 minutes.
+
+function shortOnly(list) {
+  var s = list.filter(function (v) { return v.duration > 0 && v.duration <= 600; });
+  return s.length ? s : list;
+}
+
+function shorts(page, query) {
+  var p = page && page > 1 ? page : 1;
+  if (query) {
+    try {
+      var r = fetchAny("/video/search?search=" + encodeURIComponent(query).replace(/%20/g, "+") + "&max_duration=10" + (p > 1 ? "&page=" + p : ""));
+      var rl = tilesFrom(mainSection(r.html), r.base);
+      if (rl.length) return shortOnly(rl);
+    } catch (e0) {}
+    return shortOnly(search(query, p));
+  }
+  if (p === 1) {
+    try {
+      var s = fetchAny("/shorties");
+      var sl = tilesFrom(s.html, s.base);
+      if (sl.length >= 4) return sl;
+    } catch (e) {}
+  }
+  try {
+    var res = fetchAny("/video?max_duration=10" + (p > 1 ? "&page=" + p : ""));
+    var list = tilesFrom(mainSection(res.html), res.base);
+    if (list.length) return shortOnly(list);
+  } catch (e2) {}
+  return shortOnly(home(p));
 }
