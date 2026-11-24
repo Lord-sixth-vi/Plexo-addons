@@ -1,6 +1,6 @@
 // @name        xHamster
 // @id          org.plexo.js.xhamster
-// @version     2.1.0
+// @version     2.2.0
 // @author      Plexo add-ons
 // @domains     xhamster.desi, xhamster.com, xhamster2.com, xhamster3.com, xhamster19.com, xhamster43.desi, xhopen.com, xhaccess.com, xhamster.one, xhcdn.com, xhpingcdn.com, xhmstr.com
 // @category    18+
@@ -14,6 +14,7 @@
 //   getInfo(url)        channel and cast of the video that was just opened
 //   channel(url)        name, picture, banner, subscribers, video count and about text of a channel
 //   related(url)        videos the site recommends under the video (ready for a future Plexo version)
+//   search("debug")     test mode: shows what the add-on reads from the site instead of videos
 //   comments(url)       not offered: Plexo can't show add-on comments yet, so always []
 //
 // Fallbacks
@@ -399,6 +400,7 @@ function search(query, page) {
   var q = String(query || "").trim();
   if (!q) return [];
   var p = page && page > 1 ? page : 1;
+  if (/^debug\b/i.test(q)) return p > 1 ? [] : debugReport(q.replace(/^debug\s*:?\s*/i, ""));
   var slug = encodeURIComponent(q.replace(/\s+/g, "+")).replace(/%2B/g, "+");
   var res = fetchAny("/search/" + slug + (p > 1 ? "?page=" + p : ""));
   return cardsFrom(res.html, res.base);
@@ -511,4 +513,97 @@ function related(url) {
 
 function comments(url) {
   return [];
+}
+
+// ---------- Test mode ----------
+// Search "debug" (tests the first home video and its channel) or "debug: <video or channel link>".
+// Each result card is one finding, so a screenshot shows exactly what the site sends.
+
+function debugReport(target) {
+  var lines = [];
+  function line(t) { lines.push(String(t).replace(/\s+/g, " ").slice(0, 150)); }
+  function short(v) {
+    if (v == null) return "null";
+    if (typeof v === "string") return '"' + (v.length > 70 ? v.slice(0, 70) + "…" : v) + '"';
+    if (Array.isArray(v)) return "[" + v.length + " items]";
+    if (typeof v === "object") return "{" + Object.keys(v).slice(0, 8).join(",") + "}";
+    return String(v);
+  }
+  function keyHits(data, re, max) {
+    var hits = [];
+    (function w(o, path, depth) {
+      if (!o || typeof o !== "object" || depth > 10 || hits.length >= max) return;
+      var ks = Object.keys(o);
+      for (var i = 0; i < ks.length && hits.length < max; i++) {
+        var v = o[ks[i]];
+        var pth = path + "." + ks[i];
+        if (re.test(ks[i])) hits.push(pth.replace(/^\./, "") + " = " + short(v));
+        if (v && typeof v === "object") w(v, pth, depth + 1);
+      }
+    })(data, "", 0);
+    return hits;
+  }
+  function pageReport(url, kind) {
+    var res;
+    try { res = fetchAny(url); } catch (e) { line(kind + ": could not load: " + e.message); return null; }
+    line(kind + ": " + res.url + " (" + res.html.length + " chars)");
+    var data = initialsOf(res.html);
+    line(kind + " page data: " + (data ? "found, keys: " + Object.keys(data).slice(0, 20).join(", ") : "NOT FOUND"));
+    if (!data) {
+      var scripts = res.html.match(/window\.[A-Za-z_$]+\s*=/g) || [];
+      line("page scripts set: " + (scripts.slice(0, 12).join(" ") || "none"));
+      line("og:image = " + (metaOf(res.html, "og:image") || "none"));
+    }
+    return { res: res, data: data };
+  }
+
+  var videoUrl = "", channelUrl = "";
+  if (!target) {
+    var h = [];
+    try { h = home(1); } catch (e) { line("home failed: " + e.message); }
+    line("home: " + h.length + " videos, mirror " + (__goodMirror || "none"));
+    if (h.length) {
+      videoUrl = h[0].url;
+      for (var i = 0; i < h.length; i++) if (h[i].creatorUrl) { channelUrl = h[i].creatorUrl; break; }
+    }
+  } else if (isVideoUrl(target)) videoUrl = target;
+  else channelUrl = target;
+
+  if (videoUrl) {
+    var vp = pageReport(videoUrl, "VIDEO");
+    if (vp) {
+      __videoPages[videoUrl] = vp.res;
+      var st = [];
+      try { st = getStream(videoUrl); } catch (e) { line("getStream failed: " + e.message); }
+      line("qualities found: " + (st.map(function (x) { return x.label; }).join(", ") || "none"));
+      if (vp.data) {
+        var srcHits = keyHits(vp.data, /^(sources|hls|standard|mp4|h264|h265|av1|quality|url|fallback)$/i, 25);
+        for (var a = 0; a < srcHits.length; a++) if (/sources/i.test(srcHits[a])) line(srcHits[a]);
+      }
+      var media = findMediaUrls(vp.res.html);
+      line("plain video links in page: " + media.length + (media.length ? " e.g. " + media[0].slice(0, 90) : ""));
+      try { var inf = getInfo(videoUrl); line("getInfo: creator=" + inf.creator + " url=" + inf.creatorUrl); if (!channelUrl) channelUrl = inf.creatorUrl; } catch (e) { line("getInfo failed: " + e.message); }
+    }
+  }
+
+  if (channelUrl) {
+    var cpg = pageReport(channelUrl, "CHANNEL");
+    if (cpg) {
+      var ch = channelFrom(cpg.res.html, cpg.res.base, channelUrl);
+      line("channel(): name=" + ch.name + " subs=" + ch.subscribers + " videos=" + ch.videos);
+      line("channel(): avatar=" + (ch.avatar || "NONE"));
+      line("channel(): banner=" + (ch.banner || "NONE"));
+      if (cpg.data) {
+        var chHits = keyHits(cpg.data, /avatar|subscri|follower|cover|banner|displayName|videoCount|about|image|photo|logo|thumb/i, 30);
+        for (var c = 0; c < chHits.length; c++) line(chHits[c]);
+      }
+      line("og:image = " + (metaOf(cpg.res.html, "og:image") || "none"));
+    }
+  }
+
+  var out = [];
+  for (var n = 0; n < lines.length; n++) {
+    out.push({ id: "debug" + n, url: "https://xhamster.desi/#debug-" + n, title: (n + 1) + ". " + lines[n], thumb: "", duration: 0, creator: "Test mode" });
+  }
+  return out;
 }
