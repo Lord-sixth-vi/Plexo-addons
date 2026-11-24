@@ -10,6 +10,16 @@
       "site": "archive.org",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/ott/internetarchive.js",
       "logo": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/assets/internetarchive.svg"
+    },
+    {
+      "id": "org.plexo.js.xhamster",
+      "name": "xHamster",
+      "version": "2.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "18+ only. Browse, search and stream xHamster via xhamster.desi, with mirror fallback",
+      "site": "xhamster.desi",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xhamster/xhamster.js"
     }
   ]
 }
