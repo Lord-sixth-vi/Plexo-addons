@@ -1,6 +1,6 @@
 // @name        xHamster
 // @id          org.plexo.js.xhamster
-// @version     2.0.0
+// @version     2.1.0
 // @author      Plexo add-ons
 // @domains     xhamster.desi, xhamster.com, xhamster2.com, xhamster3.com, xhamster19.com, xhamster43.desi, xhopen.com, xhaccess.com, xhamster.one, xhcdn.com, xhpingcdn.com, xhmstr.com
 // @category    18+
@@ -12,6 +12,7 @@
 //   browse(url, page)   a channel, creator or pornstar page (the "channel")
 //   getStream(url)      every quality (best first) plus an Auto HLS entry, with the Referer the CDN needs
 //   getInfo(url)        channel and cast of the video that was just opened
+//   channel(url)        name, picture, banner, subscribers, video count and about text of a channel
 //   related(url)        videos the site recommends under the video (ready for a future Plexo version)
 //   comments(url)       not offered: Plexo can't show add-on comments yet, so always []
 //
@@ -285,25 +286,28 @@ function streamsFrom(html, base) {
     }, 20000);
   }
   if (sources) {
-    // H.264 plays on every phone; AV1 only when nothing else is there.
-    var codecs = ["h264", "h265", "av1"];
+    // H.264 plays on every phone. AV1 (often where 4K lives) is added too, marked "(AV1)",
+    // only for qualities H.264 doesn't have.
     var std = sources.standard || sources.mp4 || {};
+    var got = {};
+    var codecs = ["h264", "h265", "av1"];
     for (var c = 0; c < codecs.length; c++) {
       var arr = std[codecs[c]];
       if (!Array.isArray(arr)) continue;
-      if (codecs[c] === "av1" && list.length) break;
+      var tag = codecs[c] === "av1" ? " (AV1)" : "";
       for (var i = 0; i < arr.length; i++) {
         var e = arr[i] || {};
         var q = heightOf(e.quality || e.label || "") || heightOf(e.url || "");
-        add(q ? q + "p" : str(e.quality || "MP4"), e.url, e.fallback);
+        if (q && tag && got[q]) continue;
+        if (q) got[q] = true;
+        add(q ? q + "p" + tag : str(e.quality || "MP4") + tag, e.url, e.fallback);
       }
     }
     var hls = sources.hls || {};
-    for (var c2 = 0; c2 < codecs.length; c2++) {
-      var hv = hls[codecs[c2]];
-      if (hv && (hv.url || hv.fallback)) { add("Auto", hv.url, hv.fallback); break; }
-    }
+    if (hls.h264 && (hls.h264.url || hls.h264.fallback)) add("Auto", hls.h264.url, hls.h264.fallback);
+    else if (hls.h265 && (hls.h265.url || hls.h265.fallback)) add("Auto", hls.h265.url, hls.h265.fallback);
     if (typeof hls.url === "string") add("Auto", hls.url, hls.fallback);
+    if (hls.av1 && (hls.av1.url || hls.av1.fallback)) add("Auto (AV1)", hls.av1.url, hls.av1.fallback);
   }
 
   // Fallback: plain links written in the page (preload, noscript video, etc.).
@@ -324,11 +328,32 @@ function getStream(url) {
   var list = streamsFrom(res.html, res.base);
   if (!list.length) throw new Error("No video links found (removed, private or premium-only)");
 
-  // Best quality first, then Auto (HLS) last. No extra download here, so playback starts at once.
-  var direct = list.filter(function (s) { return s.label !== "Auto"; });
-  direct.sort(function (a, b) { return heightOf(b.label) - heightOf(a.label); });
-  var auto = list.filter(function (s) { return s.label === "Auto"; });
   var headers = { "Referer": res.url, "Origin": res.base };
+  var auto = list.filter(function (s) { return s.label === "Auto" || s.label === "Auto (AV1)"; });
+
+  // Every quality inside the HLS playlists, so 1440p and 4K show up when the video has them.
+  // One small playlist download; if it fails, the qualities found above are still used.
+  var have = {};
+  for (var a = 0; a < list.length; a++) if (list[a].label !== "Auto") have[list[a].label] = true;
+  for (var m = 0; m < auto.length; m++) {
+    var vars = [];
+    try { vars = hlsVariants(auto[m].url, headers); } catch (e) { vars = []; }
+    var av1 = auto[m].label.indexOf("AV1") !== -1;
+    for (var v = 0; v < vars.length; v++) {
+      if (!vars[v].h) continue;
+      var lbl = vars[v].h + "p" + (av1 ? " (AV1)" : "");
+      if (have[lbl] || (av1 && have[vars[v].h + "p"])) continue;
+      have[lbl] = true;
+      list.push({ label: lbl, url: vars[v].url, hls: true });
+    }
+  }
+
+  // Best quality first, then Auto (HLS) last. At the same height, H.264 comes before AV1.
+  var direct = list.filter(function (s) { return s.label.indexOf("Auto") !== 0; });
+  direct.sort(function (a, b) {
+    return heightOf(b.label) - heightOf(a.label) || (a.label.indexOf("AV1") !== -1 ? 1 : 0) - (b.label.indexOf("AV1") !== -1 ? 1 : 0);
+  });
+  auto = auto.filter(function (s) { return s.label === "Auto"; }).concat(auto.filter(function (s) { return s.label !== "Auto"; }));
   var out = [];
   var labels = {};
   for (var i = 0; i < direct.length; i++) {
@@ -393,7 +418,90 @@ function browse(url, page) {
     res = fetchAny(String(url).replace(/[?#].*$/, "") + "?page=" + p);
     list = cardsFrom(res.html, res.base);
   }
+  // Videos on a channel page belong to that channel, even when the page doesn't say so on each card.
+  var ch = channelFrom(res.html, res.base, url);
+  for (var i = 0; i < list.length; i++) {
+    if (!list[i].creator && ch.name) {
+      list[i].creator = ch.name;
+      list[i].creatorUrl = ch.url;
+    }
+    if (ch.avatar && list[i].creator === ch.name) list[i].creatorAvatar = ch.avatar;
+  }
   return list;
+}
+
+// ---------- Channel header ----------
+
+function num(v) {
+  if (typeof v === "number") return v;
+  var s = str(v).replace(/,/g, "").trim();
+  var m = s.match(/^([\d.]+)\s*([kKmMbB])?/);
+  if (!m) return 0;
+  var n = parseFloat(m[1]);
+  var mul = { k: 1e3, m: 1e6, b: 1e9 }[(m[2] || "").toLowerCase()] || 1;
+  return Math.round(n * mul);
+}
+
+function metaOf(html, prop) {
+  var re = new RegExp('<meta[^>]+(?:property|name)="' + prop + '"[^>]*>', "i");
+  var tag = (html.match(re) || [""])[0];
+  return attr(tag, "content");
+}
+
+// Name, picture, banner, subscriber and video counts, and description of a channel / creator / pornstar page.
+function channelFrom(html, base, url) {
+  var out = { name: "", url: absUrl(base, pathOf(url)), avatar: "", banner: "", subscribers: 0, videos: 0, description: "" };
+  var slug = pathOf(url).split("/").filter(function (x) { return x && !/^\d+$/.test(x); });
+  var slugName = slug.length > 1 ? decodeURIComponent(slug[1]) : "";
+  var data = initialsOf(html);
+  if (data) {
+    var best = null, bestScore = 0;
+    walk(data, function (o) {
+      if (o.pageURL && o.title && isVideoUrl(o.pageURL)) return false; // a video card, not the channel
+      var name = str(o.displayName || o.name || o.title);
+      if (!name || name.length > 80) return true;
+      var score = 0;
+      if (o.avatarURL || o.avatarUrl || o.avatar || o.logo || o.thumbURL) score += 2;
+      if (o.subscribersCount != null || o.subscriberCount != null || o.subscribers != null || o.followersCount != null) score += 3;
+      if (o.videoCount != null || o.videosCount != null || o.videos != null) score += 1;
+      if (o.coverURL || o.coverUrl || o.bannerURL || o.banner || o.cover) score += 2;
+      if (o.about || o.description || o.bio) score += 1;
+      if (slugName && name.toLowerCase().replace(/[\s_]+/g, "-") === slugName.toLowerCase().replace(/[\s_]+/g, "-")) score += 4;
+      if (score > bestScore) { bestScore = score; best = o; }
+      return true;
+    }, 30000);
+    if (best && bestScore >= 3) {
+      out.name = decodeHtml(str(best.displayName || best.name || best.title)).trim();
+      var av = str(best.avatarURL || best.avatarUrl || (typeof best.avatar === "string" ? best.avatar : best.avatar && best.avatar.url) || best.logo || best.thumbURL);
+      if (av) out.avatar = absUrl(base, av);
+      var bn = str(best.coverURL || best.coverUrl || best.bannerURL || (typeof best.banner === "string" ? best.banner : "") || (typeof best.cover === "string" ? best.cover : best.cover && best.cover.url));
+      if (bn) out.banner = absUrl(base, bn);
+      out.subscribers = num(best.subscribersCount != null ? best.subscribersCount : (best.subscriberCount != null ? best.subscriberCount : (best.followersCount != null ? best.followersCount : best.subscribers)));
+      out.videos = num(best.videoCount != null ? best.videoCount : (best.videosCount != null ? best.videosCount : (typeof best.videos === "number" ? best.videos : 0)));
+      out.description = textOf(str(best.about || best.description || best.bio)).slice(0, 2000);
+    }
+  }
+  // Fallbacks: the page's own title, picture and description tags.
+  if (!out.name) {
+    var t = metaOf(html, "og:title") || ((html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || "");
+    out.name = textOf(t).replace(/\s*[|:\-–]\s*xHamster.*$/i, "").replace(/['’]s\s+(?:Videos|Profile|Channel).*$/i, "").replace(/\s+(?:Porn\s+)?Videos?.*$/i, "").trim() || slugName.replace(/[-_]+/g, " ");
+  }
+  if (!out.avatar) {
+    var img = metaOf(html, "og:image");
+    if (img && !/\/(?:videos?|thumbs?)\//i.test(img)) out.avatar = absUrl(base, img);
+  }
+  if (!out.description) out.description = textOf(metaOf(html, "og:description") || metaOf(html, "description")).slice(0, 2000);
+  if (!out.subscribers) {
+    var sm = textOf(html.slice(0, 200000)).match(/([\d.,]+\s*[KkMm]?)\s+(?:subscribers|followers)/);
+    if (sm) out.subscribers = num(sm[1]);
+  }
+  return out;
+}
+
+// Used by Plexo for the top of the channel page.
+function channel(url) {
+  var res = fetchAny(url);
+  return channelFrom(res.html, res.base, url);
 }
 
 function related(url) {
