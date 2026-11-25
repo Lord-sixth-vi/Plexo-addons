@@ -1,6 +1,6 @@
 // @name        Beeg
 // @id          org.plexo.js.beeg
-// @version     1.1.0
+// @version     1.2.0
 // @author      Plexo add-ons
 // @domains     beeg.com, externulls.com, beeg.porn
 // @category    18+
@@ -268,7 +268,19 @@ function fileRecord(url) {
   var id = idFromUrl(url);
   if (!id) throw new Error("Not a Beeg video link");
   if (__files[id]) return __files[id];
-  var rec = api("/facts/file/" + id);
+  // Beeg's own links write the id with a leading 0 ("-0789…"), and the data server only sends the
+  // video links for that form. Try it first, then the bare number.
+  var forms = ["0" + id, id];
+  var rec = null, first = null;
+  for (var i = 0; i < forms.length; i++) {
+    try {
+      var r = api("/facts/file/" + forms[i]);
+      if (!first) first = r;
+      if (Object.keys(resourcesOf(r)).length) { rec = r; break; }
+    } catch (e) {}
+  }
+  rec = rec || first;
+  if (!rec) throw new Error("This video couldn't be loaded from Beeg");
   __files[id] = rec;
   return rec;
 }
@@ -411,8 +423,11 @@ function shorts(page, query) {
 
 function debugReport(target) {
   var lines = [];
-  function line(t) { lines.push(str(t).replace(/\s+/g, " ").slice(0, 150)); }
-  function keysOf(o) { return o && typeof o === "object" ? Object.keys(o).slice(0, 14).join(",") : typeof o; }
+  function line(t) {
+    var s = str(t).replace(/\s+/g, " ");
+    for (var c = 0; c < s.length && c < 400; c += 38) lines.push((c ? "  …" : "") + s.slice(c, c + 38));
+  }
+  function keysOf(o) { return o && typeof o === "object" ? Object.keys(o).slice(0, 30).join(",") : typeof o; }
   var raw = null;
   try { raw = api("/facts/tag?id=" + HOME_TAG + "&limit=" + PAGE_SIZE + "&offset=0"); } catch (e) { line("home data failed: " + e.message); }
   line("data server: " + (__goodApi || "none"));
@@ -437,6 +452,14 @@ function debugReport(target) {
   if (vurl) {
     try {
       var rec = fileRecord(vurl);
+      var vid = idFromUrl(vurl);
+      ["0" + vid, vid].forEach(function (form) {
+        try {
+          var rr = api("/facts/file/" + form);
+          var hr = (rr.file && rr.file.hls_resources) || (rr.fc_facts && rr.fc_facts[0] && rr.fc_facts[0].hls_resources);
+          line("id form " + form.slice(0, 6) + "…: " + (hr ? "LINKS " + Object.keys(hr).join(",") : "no links"));
+        } catch (ef) { line("id form " + form.slice(0, 6) + "…: failed " + ef.message); }
+      });
       line("VIDEO id " + idFromUrl(vurl) + " record: " + (Array.isArray(rec) ? "list of " + rec.length : "{" + keysOf(rec) + "}"));
       line("file: {" + keysOf(fileOf(rec)) + "}");
       var facts = rec.fc_facts || [];

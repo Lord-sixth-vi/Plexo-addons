@@ -34,7 +34,7 @@
     {
       "id": "org.plexo.js.beeg",
       "name": "Beeg",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "category": "18+",
       "adult": true,
       "description": "18+ only. Browse, search and stream Beeg, with API and video-server fallback",
