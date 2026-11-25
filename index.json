@@ -30,6 +30,16 @@
       "description": "18+ only. Browse, search and stream Pornhub via pornhub.org, with mirror fallback",
       "site": "pornhub.org",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/pornhub/pornhub.js"
+    },
+    {
+      "id": "org.plexo.js.beeg",
+      "name": "Beeg",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "18+ only. Browse, search and stream Beeg, with API and video-server fallback",
+      "site": "beeg.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/beeg/beeg.js"
     }
   ]
 }
