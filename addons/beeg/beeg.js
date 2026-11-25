@@ -1,6 +1,6 @@
 // @name        Beeg
 // @id          org.plexo.js.beeg
-// @version     1.0.0
+// @version     1.1.0
 // @author      Plexo add-ons
 // @domains     beeg.com, externulls.com, beeg.porn
 // @category    18+
@@ -273,6 +273,25 @@ function fileRecord(url) {
   return rec;
 }
 
+// Every object in the record whose keys look like qualities ("fl_cdn_720", "720", "720p", "hls_720"...).
+function deepResources(rec) {
+  var found = {};
+  var stack = [rec];
+  var n = 0;
+  while (stack.length && n < 5000) {
+    var o = stack.pop();
+    n++;
+    if (!o || typeof o !== "object") continue;
+    var keys = Object.keys(o);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i], v = o[k];
+      if (typeof v === "string" && v && /(?:^|_)(\d{3,4})p?$/.test(k) && /[\/=]/.test(v)) found[k] = v;
+      else if (v && typeof v === "object") stack.push(v);
+    }
+  }
+  return found;
+}
+
 function resourcesOf(rec) {
   var f = fileOf(rec);
   var fact = factOf(rec);
@@ -281,6 +300,7 @@ function resourcesOf(rec) {
     var facts = rec.fc_facts || [];
     for (var i = 0; i < facts.length && !res; i++) res = facts[i] && facts[i].hls_resources;
   }
+  if (!res || !Object.keys(res).length) res = deepResources(rec);
   return res || {};
 }
 
@@ -302,7 +322,8 @@ function getStream(url) {
   // Fallback: any playlist link inside the record.
   if (!list.length && !masters.length) {
     var raw = JSON.stringify(rec);
-    var found = raw.match(/[\w\/.-]+\.m3u8[^"]*/g) || [];
+    var found = raw.match(/(?:https?:\\?\/\\?\/[^"]+)?[\w\/.,=;:-]*(?:\.m3u8|key=|\/multi=)[^"]*/g) || [];
+    found = found.map(function (x) { return x.replace(/\\\//g, "/"); }).filter(function (x) { return x.length > 12; });
     for (var f = 0; f < found.length; f++) {
       var u = /^https?:/.test(found[f]) ? found[f] : VIDEO_HOSTS[0] + found[f].replace(/^\//, "");
       var hh = heightOf(u);
@@ -393,7 +414,7 @@ function debugReport(target) {
   function line(t) { lines.push(str(t).replace(/\s+/g, " ").slice(0, 150)); }
   function keysOf(o) { return o && typeof o === "object" ? Object.keys(o).slice(0, 14).join(",") : typeof o; }
   var raw = null;
-  try { raw = api("/facts/tag?id=" + HOME_TAG + "&limit=2&offset=0"); } catch (e) { line("home data failed: " + e.message); }
+  try { raw = api("/facts/tag?id=" + HOME_TAG + "&limit=" + PAGE_SIZE + "&offset=0"); } catch (e) { line("home data failed: " + e.message); }
   line("data server: " + (__goodApi || "none"));
   if (raw) {
     var arr = Array.isArray(raw) ? raw : (raw.items || raw.facts || raw.data || []);
@@ -416,7 +437,22 @@ function debugReport(target) {
   if (vurl) {
     try {
       var rec = fileRecord(vurl);
-      line("VIDEO " + vurl + " keys: " + keysOf(rec));
+      line("VIDEO id " + idFromUrl(vurl) + " record: " + (Array.isArray(rec) ? "list of " + rec.length : "{" + keysOf(rec) + "}"));
+      line("file: {" + keysOf(fileOf(rec)) + "}");
+      var facts = rec.fc_facts || [];
+      line("facts: " + (Array.isArray(facts) ? facts.length + " x {" + keysOf(facts[0]) + "}" : typeof facts));
+      var paths = [];
+      (function w(o, pth, d) {
+        if (!o || typeof o !== "object" || d > 6 || paths.length > 12) return;
+        Object.keys(o).forEach(function (k) {
+          var v = o[k];
+          if (/cdn|hls|res|stream|video|url|src|qual|m3u8/i.test(k)) paths.push(pth + "." + k + "=" + (typeof v === "object" ? "{" + keysOf(v) + "}" : str(v).slice(0, 50)));
+          if (v && typeof v === "object") w(v, pth + "." + k, d + 1);
+        });
+      })(rec, "", 0);
+      for (var pp = 0; pp < paths.length; pp++) line("field " + paths[pp]);
+      var rawRec = JSON.stringify(rec);
+      line("record size " + rawRec.length + ", has m3u8: " + (rawRec.indexOf("m3u8") !== -1) + ", has key=: " + (rawRec.indexOf("key=") !== -1));
       var r = resourcesOf(rec);
       line("quality list: " + (Object.keys(r).join(", ") || "NONE"));
       var k0 = Object.keys(r)[0];
