@@ -1,6 +1,6 @@
 // @name        xHamster
 // @id          org.plexo.js.xhamster
-// @version     2.5.0
+// @version     2.6.0
 // @author      Plexo add-ons
 // @domains     xhamster.desi, xhamster.com, xhamster2.com, xhamster3.com, xhamster19.com, xhamster43.desi, xhopen.com, xhaccess.com, xhamster.one, xhcdn.com, xhpingcdn.com, xhmstr.com
 // @category    18+
@@ -642,4 +642,35 @@ function shorts(page, query) {
     } catch (e) {}
   }
   return shortOnly(home(p));
+}
+
+// Qualities inside an HLS playlist. (Replaces the app's built-in version, which pointed links written
+// relative to the playlist, like "720p.m3u8", at the site's root instead of the playlist's folder.)
+function hlsVariants(masterUrl, headers) {
+  var out = [];
+  var text;
+  try { text = getPage(masterUrl, headers); } catch (e) { return out; }
+  if (text.indexOf("#EXT-X-STREAM-INF") === -1) return out;
+  var dir = String(masterUrl).replace(/[?#].*$/, "").replace(/\/[^\/]*$/, "/");
+  var query = (String(masterUrl).match(/\?[^#]*/) || [""])[0];
+  var lines = text.split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i];
+    if (l.indexOf("#EXT-X-STREAM-INF") !== 0) continue;
+    var res = l.match(/RESOLUTION=(\d+)x(\d+)/);
+    var bw = l.match(/BANDWIDTH=(\d+)/);
+    var next = "";
+    for (var j = i + 1; j < lines.length; j++) {
+      if (lines[j] && lines[j].charAt(0) !== "#") { next = lines[j].trim(); break; }
+    }
+    if (!next) continue;
+    var url;
+    if (/^https?:\/\//.test(next)) url = next;
+    else if (next.indexOf("//") === 0) url = "https:" + next;
+    else if (next.charAt(0) === "/") url = String(masterUrl).match(/^https?:\/\/[^\/]+/)[0] + next;
+    else url = dir + next + (next.indexOf("?") === -1 && query && /token|hash|validfrom|expires|sign|key=/i.test(query) ? query : "");
+    var h = res ? Math.min(parseInt(res[1], 10), parseInt(res[2], 10)) : 0;
+    out.push({ h: h, bw: bw ? parseInt(bw[1], 10) : 0, url: url });
+  }
+  return out;
 }

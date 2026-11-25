@@ -14,7 +14,7 @@
     {
       "id": "org.plexo.js.xhamster",
       "name": "xHamster",
-      "version": "2.5.0",
+      "version": "2.6.0",
       "category": "18+",
       "adult": true,
       "description": "18+ only. Browse, search and stream xHamster via xhamster.desi, with mirror fallback",
@@ -24,7 +24,7 @@
     {
       "id": "org.plexo.js.pornhub",
       "name": "Pornhub",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "category": "18+",
       "adult": true,
       "description": "18+ only. Browse, search and stream Pornhub via pornhub.org, with mirror fallback",
@@ -34,12 +34,62 @@
     {
       "id": "org.plexo.js.beeg",
       "name": "Beeg",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "category": "18+",
       "adult": true,
       "description": "18+ only. Browse, search and stream Beeg, with API and video-server fallback",
       "site": "beeg.com",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/beeg/beeg.js"
+    },
+    {
+      "id": "org.plexo.js.xvideos",
+      "name": "XVideos",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "18+ only. Browse, search and stream XVideos, with mirror fallback",
+      "site": "xvideos.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xvideos/xvideos.js"
+    },
+    {
+      "id": "org.plexo.js.xnxx",
+      "name": "XNXX",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "18+ only. Browse, search and stream XNXX, with mirror fallback",
+      "site": "xnxx.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xnxx/xnxx.js"
+    },
+    {
+      "id": "org.plexo.js.youporn",
+      "name": "YouPorn",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "18+ only. Browse, search and stream YouPorn, with mirror and player fallbacks",
+      "site": "youporn.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/youporn/youporn.js"
+    },
+    {
+      "id": "org.plexo.js.redtube",
+      "name": "RedTube",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "18+ only. Browse, search and stream RedTube, with mirror and player fallbacks",
+      "site": "redtube.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/redtube/redtube.js"
+    },
+    {
+      "id": "org.plexo.js.eporner",
+      "name": "Eporner",
+      "version": "1.0.0",
+      "category": "18+",
+      "adult": true,
+      "description": "18+ only. Browse, search and stream Eporner (official API for lists), with fallbacks",
+      "site": "eporner.com",
+      "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/eporner/eporner.js"
     }
   ]
 }
