@@ -1,6 +1,6 @@
 // @name        Beeg
 // @id          org.plexo.js.beeg
-// @version     1.2.0
+// @version     1.3.0
 // @author      Plexo add-ons
 // @domains     beeg.com, externulls.com, beeg.porn
 // @category    18+
@@ -25,7 +25,8 @@
 //   1. Data servers: store.externulls.com, then the same data through beeg.com.
 //   2. Video links: the file's own quality list, then the clip's list, then any playlist link found.
 //   3. Video servers: video.beeg.com, then video.externulls.com.
-//   4. Search: the exact tag / channel / model, then a looser match, then the newest videos filtered by title.
+//   4. No links from the data server: the video page opens in Plexo's built-in browser, which catches the stream.
+//   5. Search: the exact tag / channel / model, then a looser match, then the newest videos filtered by title.
 //
 // Written from how the site is known to work; not tested against the live site.
 
@@ -348,7 +349,9 @@ function getStream(url) {
     try { vars = hlsVariants(masters[m], headers); } catch (e) {}
     for (var v = 0; v < vars.length; v++) if (vars[v].h) list.push({ h: vars[v].h, url: vars[v].url });
   }
-  if (!list.length && !masters.length) throw new Error("No video links found for this video");
+  // Last fallback: Beeg's data server no longer sends video links for some videos. Plexo then opens the
+  // video's page in its built-in browser and catches the stream as the page plays it.
+  if (!list.length && !masters.length) return [{ label: "Browser", url: "webpage://" + videoUrl(idFromUrl(url)) }];
 
   list.sort(function (a, b) { return b.h - a.h; });
   var out = [];
