@@ -1,6 +1,6 @@
 // @name        Pornhub
 // @id          org.plexo.js.pornhub
-// @version     1.3.0
+// @version     1.4.0
 // @author      Plexo add-ons
 // @domains     pornhub.org, pornhub.com, pornhub.net, phncdn.com, phprcdn.com
 // @category    18+
@@ -12,7 +12,8 @@
 //   browse(url, page)   a model, channel, pornstar or user page (the "channel")
 //   channel(url)        name, picture, banner, subscribers, video count and about text of that page
 //   getStream(url)      every quality (best first, up to 4K when the video has it) plus Auto
-//   getInfo(url)        uploader and pornstars of the video that was just opened
+//   getInfo(url)        uploader, pornstars with photos, tags and Moments (the site's timestamps)
+//   categories()        every category with its picture and video count
 //   shorts(page, q)     short clips for Plexo's Shorts tab (pick the add-on in Settings → Shorts → Shorts from)
 //   related(url)        the "Related videos" under the video
 //   comments(url)       the first page of comments (ready for when Plexo shows add-on comments)
@@ -230,7 +231,8 @@ function search(query, page) {
 function videosPath(url) {
   var path = pathOf(url).replace(/[?#].*$/, "").replace(/\/$/, "");
   var m = path.match(/^\/(model|pornstar|channels|users|user)\/([^\/]+)/i);
-  if (!m) return path;
+  // Other pages (categories like /video?c=29, tag searches) keep their query, minus any page number.
+  if (!m) return pathOf(url).replace(/#.*$/, "").replace(/([?&])page=\d+&?/, "$1").replace(/[?&]$/, "");
   var kind = m[1].toLowerCase();
   if (kind === "users" || kind === "user") return "/users/" + m[2] + "/videos/public";
   return "/" + kind + "/" + m[2] + "/videos";
@@ -240,7 +242,9 @@ function browse(url, page) {
   var p = page && page > 1 ? page : 1;
   var path = videosPath(url);
   var res;
-  try { res = fetchAny(path + (p > 1 ? "?page=" + p : "")); }
+  // Category links already carry a query (/video?c=29), so the page number joins with "&".
+  var joiner = path.indexOf("?") !== -1 ? "&" : "?";
+  try { res = fetchAny(path + (p > 1 ? joiner + "page=" + p : "")); }
   catch (e) { if (p > 1) return []; res = fetchAny(url); }
   var list = tilesFrom(mainSection(res.html), res.base);
   var ch = channelFrom(res.html, res.base, url);
@@ -433,14 +437,9 @@ function getInfo(url) {
   var info = { creator: "", creatorUrl: "", actors: [] };
   var up = res.html.match(/class="[^"]*(?:video-detailed-info|userInfo|usernameWrap)[^"]*"[\s\S]{0,1500}?<a\b[^>]*href="(\/(?:model|channels|users|pornstar)\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
   if (up) { info.creator = textOf(up[2]); info.creatorUrl = absUrl(res.base, decodeHtml(up[1])); }
-  var seen = {};
-  var stars = linkMatches(res.html, "pornstar", 20);
-  for (var i = 0; i < stars.length; i++) {
-    var key = stars[i].name.toLowerCase();
-    if (seen[key] || /^pornstars?$/i.test(stars[i].name)) continue;
-    seen[key] = true;
-    info.actors.push({ name: stars[i].name, url: absUrl(res.base, stars[i].href) });
-  }
+  info.actors = castOf(res.html, res.base);
+  info.tags = tagsOf(res.html);
+  info.moments = momentsOf(res.html);
   if (!info.creator) {
     var p = pageInfo(url);
     info.creator = p.creator; info.creatorUrl = p.creatorUrl;
@@ -601,4 +600,129 @@ function hlsVariants(masterUrl, headers) {
     out.push({ h: h, bw: bw ? parseInt(bw[1], 10) : 0, url: url });
   }
   return out;
+}
+
+
+// ---------- Cast, tags, Moments, categories (add-on 1.4.0) ----------
+
+// The picture inside (or right next to) a link: avatars sit in an <img> inside the pornstar link.
+function imgNear(html, at, len) {
+  var part = html.slice(at, at + (len || 900));
+  var img = part.match(/<img\b[^>]*>/i);
+  if (!img) return "";
+  var names = ["data-src", "data-thumb_url", "data-image", "data-original", "src"];
+  for (var n = 0; n < names.length; n++) {
+    var v = decodeHtml(attr(img[0], names[n]));
+    if (/^(https?:)?\/\//.test(v) && !/blank|placeholder|spacer|\.gif(\?|$)|data:image/i.test(v)) return absUrl("https://ei.phncdn.com", v);
+  }
+  return "";
+}
+
+// Pornstars and models in the video, with their photo: [{name, url, avatar}].
+function castOf(html, base) {
+  var out = [];
+  var seen = {};
+  // The cast box first, else anywhere in the page.
+  var start = html.search(/class="[^"]*(?:pornstarsWrapper|pornstar_container|js-pornstarsWrapper)[^"]*"/i);
+  var area = start !== -1 ? html.slice(start, start + 12000) : html;
+  var re = /<a\b[^>]*href="([^"]*\/(?:pornstar|model)\/[^"#?\/]+)[^"]*"[^>]*>/gi;
+  var m;
+  while ((m = re.exec(area)) !== null && out.length < 16) {
+    var tag = m[0];
+    var href = m[1];
+    var inner = area.slice(m.index, m.index + 900);
+    var close = inner.indexOf("</a>");
+    var body = close !== -1 ? inner.slice(0, close) : inner;
+    var name = attr(tag, "data-mxptext") || attr(tag, "title") || attr(tag, "data-title");
+    if (!name) {
+      var alt = body.match(/<img\b[^>]*alt="([^"]+)"/i);
+      name = alt ? decodeHtml(alt[1]) : textOf(body);
+    }
+    name = str(name).replace(/\s*\(?\d[\d.,kKmM]*\s*(?:videos?|subscribers?|views?)?\)?\s*$/i, "").replace(/\s+/g, " ").trim();
+    if (!name || name.length > 50 || /^(?:pornstars?|models?|more|all|view|see|subscribe)\b/i.test(name)) continue;
+    var key = name.toLowerCase();
+    if (seen[key]) continue;
+    seen[key] = true;
+    out.push({ name: name, url: absUrl(base, decodeHtml(href)), avatar: imgNear(area, m.index, close !== -1 ? close : 900) });
+  }
+  return out;
+}
+
+// The video's tags and categories, as plain words: ["Amateur", "POV", ...].
+function tagsOf(html) {
+  var out = [];
+  var seen = {};
+  var boxes = ["categoriesWrapper", "tagsWrapper", "video-info-row"];
+  for (var b = 0; b < boxes.length; b++) {
+    var at = html.indexOf(boxes[b]);
+    if (at === -1) continue;
+    var area = html.slice(at, at + 6000);
+    var re = /<a\b[^>]*href="([^"]*(?:\/categories\/|\/video\?c=|\/video\/search\?search=|\/tags?\/)[^"]*)"[^>]*>([\s\S]{0,160}?)<\/a>/gi;
+    var m;
+    while ((m = re.exec(area)) !== null && out.length < 24) {
+      var t = textOf(m[2]).replace(/^#/, "").trim();
+      if (!t || t.length > 40 || /^(?:\+|more|suggest|edit)/i.test(t)) continue;
+      var k = t.toLowerCase();
+      if (seen[k]) continue;
+      seen[k] = true;
+      out.push(t);
+    }
+  }
+  return out;
+}
+
+// The site's timestamps ("action tags"): "Missionary:123,Doggystyle:456" -> [{t: 123, label}].
+function momentsOf(html) {
+  var raw = "";
+  var fv = flashvarsOf(html);
+  if (fv && fv.actionTags) raw = str(fv.actionTags);
+  if (!raw) {
+    var m = html.match(/"actionTags"\s*:\s*"([^"]*)"/);
+    if (m) raw = m[1];
+  }
+  var out = [];
+  if (!raw) return out;
+  var parts = raw.split(",");
+  for (var i = 0; i < parts.length; i++) {
+    var bits = parts[i].split(":");
+    if (bits.length < 2) continue;
+    var sec = parseInt(bits[bits.length - 1], 10);
+    var label = decodeHtml(bits.slice(0, bits.length - 1).join(":")).trim();
+    if (!label || isNaN(sec) || sec < 0) continue;
+    out.push({ t: sec, label: label });
+  }
+  out.sort(function (a, b) { return a.t - b.t; });
+  return out;
+}
+
+// Every category with its picture and video count: [{name, url, thumb, count}].
+function categories() {
+  var res = fetchAny("/categories");
+  var html = res.html;
+  var out = [];
+  var seen = {};
+  var chunks = html.split(/<li\b/i);
+  for (var i = 1; i < chunks.length; i++) {
+    var c = chunks[i].slice(0, 3000);
+    var a = c.match(/<a\b[^>]*href="([^"]*(?:\/video\?c=\d+|\/categories\/[a-z0-9-]+)[^"]*)"[^>]*>/i);
+    if (!a) continue;
+    var href = decodeHtml(a[1]);
+    var img = (c.match(/<img\b[^>]*>/i) || [""])[0];
+    if (!img) continue;
+    var name =
+      attr(a[0], "data-mxptext") || attr(a[0], "title") || attr(img, "alt") ||
+      textOf((c.match(/<(?:strong|span)[^>]*class="[^"]*(?:title|categoryTitleWrapper|category-title)[^"]*"[^>]*>([\s\S]*?)<\/(?:strong|span)>/i) || ["", ""])[1]);
+    name = str(name).replace(/\s+/g, " ").trim();
+    if (!name || name.length > 40) continue;
+    var url = absUrl(res.base, href);
+    var key = url.replace(/[?&]page=\d+/, "");
+    if (seen[key]) continue;
+    seen[key] = true;
+    var thumb = phThumb(c, img);
+    var cnt = c.match(/class="[^"]*videoCount[^"]*"[^>]*>([\s\S]{0,80}?)</i) || c.match(/([\d][\d,.]*[KkMm]?)\s*Videos/i);
+    out.push({ name: name, url: url, thumb: thumb, count: cnt ? num(textOf(cnt[1])) : 0 });
+  }
+  // Most popular first when the page gave counts.
+  if (out.length && out.some(function (x) { return x.count > 0; })) out.sort(function (a, b) { return b.count - a.count; });
+  return out.slice(0, 200);
 }

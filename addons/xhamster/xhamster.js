@@ -1,6 +1,6 @@
 // @name        xHamster
 // @id          org.plexo.js.xhamster
-// @version     2.6.0
+// @version     2.7.0
 // @author      Plexo add-ons
 // @domains     xhamster.desi, xhamster.com, xhamster2.com, xhamster3.com, xhamster19.com, xhamster43.desi, xhopen.com, xhaccess.com, xhamster.one, xhcdn.com, xhpingcdn.com, xhmstr.com
 // @category    18+
@@ -11,7 +11,8 @@
 //   search(q, page)     search results
 //   browse(url, page)   a channel, creator or pornstar page (the "channel")
 //   getStream(url)      every quality (best first) plus an Auto HLS entry, with the Referer the CDN needs
-//   getInfo(url)        channel and cast of the video that was just opened
+//   getInfo(url)        channel, cast with photos and tags of the video that was just opened
+//   categories()        every category with its picture
 //   channel(url)        name, picture, banner, subscribers, video count and about text of a channel
 //   shorts(page, q)     short clips for Plexo's Shorts tab (pick the add-on in Settings → Shorts → Shorts from)
 //   related(url)        videos the site recommends under the video (ready for a future Plexo version)
@@ -393,7 +394,108 @@ function getInfo(url) {
       if (link) info.creatorUrl = absUrl(res.base, link);
     }
   }
+  var extra = castAndTags(data, res.html, res.base);
+  if (extra.cast.length) info.actors = extra.cast;
+  info.tags = extra.tags;
   return info;
+}
+
+// ---------- Cast, tags, categories (add-on 2.7.0) ----------
+
+function picOf(o) {
+  var v = o.thumbUrl || o.thumbURL || o.imageUrl || o.imageURL || o.avatarUrl || o.avatarURL || o.avatar || o.image || o.photo || o.thumb || "";
+  if (v && typeof v === "object") v = v.url || v.src || "";
+  return str(v);
+}
+
+// Pornstars (with photo) and tags of a video, from the page data, else from its links.
+function castAndTags(data, html, base) {
+  var cast = [], tags = [];
+  var seenC = {}, seenT = {};
+  function addCast(name, url, pic) {
+    name = decodeHtml(str(name)).replace(/\s+/g, " ").trim();
+    if (!name || name.length > 50 || seenC[name.toLowerCase()]) return;
+    seenC[name.toLowerCase()] = true;
+    cast.push({ name: name, url: absUrl(base, url), avatar: /^https?:|^\/\//.test(pic) ? absUrl(base, pic) : "" });
+  }
+  function addTag(name) {
+    name = decodeHtml(str(name)).replace(/^#/, "").trim();
+    if (!name || name.length > 40 || seenT[name.toLowerCase()]) return;
+    seenT[name.toLowerCase()] = true;
+    tags.push(name);
+  }
+  if (data) {
+    var box = data.videoTagsComponent || data.videoTags || (data.videoModel && data.videoModel.tags) || null;
+    var list = box && (box.tags || box.list || box);
+    if (Array.isArray(list)) {
+      for (var i = 0; i < list.length; i++) {
+        var t = list[i] || {};
+        var u = str(t.url || t.link || t.pageURL);
+        var n = t.name || t.title;
+        if (t.isPornstar || /\/pornstars?\//i.test(u)) addCast(n, u, picOf(t));
+        else if (!t.isChannel && !/\/channels?\//i.test(u)) addTag(n);
+      }
+    }
+    // Anywhere else in the data: objects that link to a pornstar page.
+    if (!cast.length) {
+      walk(data, function (o) {
+        var u = str(o.pageURL || o.url || o.link);
+        if (/\/pornstars\/[^\/?#]+/i.test(u) && (o.name || o.title)) { addCast(o.name || o.title, u, picOf(o)); return false; }
+        return true;
+      }, 20000);
+    }
+  }
+  if (!cast.length) {
+    var re = /<a\b[^>]*href="([^"]*\/pornstars\/[^"#?\/]+)[^"]*"[^>]*>([\s\S]{0,600}?)<\/a>/gi;
+    var m;
+    while ((m = re.exec(html)) !== null && cast.length < 16) {
+      var img = (m[2].match(/<img\b[^>]*>/i) || [""])[0];
+      addCast(attr(m[0], "title") || attr(img, "alt") || textOf(m[2]), decodeHtml(m[1]), attr(img, "data-src") || attr(img, "src"));
+    }
+  }
+  if (!tags.length) {
+    var re2 = /<a\b[^>]*href="[^"]*\/(?:tags|categories)\/[^"#?]+"[^>]*>([\s\S]{0,160}?)<\/a>/gi;
+    var m2;
+    while ((m2 = re2.exec(html)) !== null && tags.length < 24) addTag(textOf(m2[1]));
+  }
+  return { cast: cast.slice(0, 16), tags: tags.slice(0, 24) };
+}
+
+// Every category with its picture: [{name, url, thumb, count}].
+function categories() {
+  var res = fetchAny("/categories");
+  var out = [];
+  var seen = {};
+  function add(name, url, thumb, count) {
+    name = decodeHtml(str(name)).replace(/\s+/g, " ").trim();
+    url = str(url);
+    if (!name || name.length > 40 || !/\/categories\/[^\/?#]+/i.test(url)) return;
+    var abs = absUrl(res.base, url);
+    if (seen[abs]) return;
+    seen[abs] = true;
+    out.push({ name: name, url: abs, thumb: thumb ? absUrl(res.base, thumb) : "", count: num(count || 0) });
+  }
+  var data = initialsOf(res.html);
+  if (data) {
+    walk(data, function (o) {
+      var u = str(o.url || o.link || o.pageURL);
+      if ((o.name || o.title) && /\/categories\/[^\/?#]+/i.test(u)) { add(o.name || o.title, u, picOf(o), o.videoCount || o.count || o.videos); return false; }
+      return true;
+    }, 30000);
+  }
+  if (out.length < 5) {
+    var chunks = res.html.split(/<(?:li|div)\b[^>]*class="[^"]*(?:item|thumb|category)[^"]*"/i);
+    for (var i = 1; i < chunks.length; i++) {
+      var c = chunks[i].slice(0, 2500);
+      var a = c.match(/<a\b[^>]*href="([^"]*\/categories\/[^"#?]+)"[^>]*>/i);
+      if (!a) continue;
+      var img = (c.match(/<img\b[^>]*>/i) || [""])[0];
+      add(attr(a[0], "title") || attr(img, "alt") || textOf(c.slice(0, 600)), decodeHtml(a[1]), attr(img, "data-src") || attr(img, "src"), 0);
+    }
+  }
+  // Only categories with pictures first: they make the nicest tiles.
+  out.sort(function (a, b) { return (b.thumb ? 1 : 0) - (a.thumb ? 1 : 0); });
+  return out.slice(0, 200);
 }
 
 // ---------- Lists ----------

@@ -14,20 +14,20 @@
     {
       "id": "org.plexo.js.xhamster",
       "name": "xHamster",
-      "version": "2.6.0",
+      "version": "2.7.0",
       "category": "18+",
       "adult": true,
-      "description": "18+ only. Browse, search and stream xHamster via xhamster.desi, with mirror fallback",
+      "description": "18+ only. Browse, search and stream xHamster via xhamster.desi, with categories, cast photos and tags",
       "site": "xhamster.desi",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/xhamster/xhamster.js"
     },
     {
       "id": "org.plexo.js.pornhub",
       "name": "Pornhub",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "category": "18+",
       "adult": true,
-      "description": "18+ only. Browse, search and stream Pornhub via pornhub.org, with mirror fallback",
+      "description": "18+ only. Browse, search and stream Pornhub via pornhub.org, with categories, cast photos, tags and timestamps",
       "site": "pornhub.org",
       "url": "https://raw.githubusercontent.com/Lord-sixth-vi/Plexo-addons/main/addons/pornhub/pornhub.js"
     },
